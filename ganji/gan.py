@@ -27,7 +27,6 @@ LeakyReLU = keras.layers.LeakyReLU
 Flatten = keras.layers.Flatten
 Dropout = keras.layers.Dropout
 
-mnist = keras.datasets.mnist
 Adam = keras.optimizers.Adam
 SGD = keras.optimizers.SGD
 
@@ -133,13 +132,13 @@ def train(dir):
     d = discriminator_model(n)
     g = generator_model(n)
     d_on_g = generator_containing_discriminator(g, d)
-    if os.path.exists(os.path.join(dir, 'generator.index')):
-        g.load_weights(os.path.join(dir, 'generator'))
+    if os.path.exists(os.path.join(dir, 'models', 'generator.index')):
+        g.load_weights(os.path.join(dir, 'models', 'generator'))
     d_on_g.compile(loss='binary_crossentropy', optimizer='SGD')
     d.trainable = True
     d.compile(loss='binary_crossentropy', optimizer='ADAM')
-    if os.path.exists(os.path.join(dir, 'discriminator.index')):
-        d.load_weights(os.path.join(dir, 'discriminator'))
+    if os.path.exists(os.path.join(dir, 'models', 'discriminator.index')):
+        d.load_weights(os.path.join(dir, 'models', 'discriminator'))
     # train
     for epoch in range(epoch_start, epoch_end):
         print('Epoch is', epoch)
@@ -163,8 +162,8 @@ def train(dir):
             d.trainable = True
             print(f'batch: {index:d}, g_loss: {g_loss:f}')
         if epoch % 10 == 9:
-            g.save_weights(os.path.join(dir, 'generator'), True)
-            d.save_weights(os.path.join(dir, 'discriminator'), True)
+            g.save_weights(os.path.join(dir, 'models', 'generator'), True)
+            d.save_weights(os.path.join(dir, 'models', 'discriminator'), True)
             _dump_metadata(dir, obj)
         if epoch % 100 == 99:
             e1 = epoch + 1
@@ -172,21 +171,28 @@ def train(dir):
             d.save_weights(os.path.join(dir, 'models', f'discriminator_{e1:06d}'), True)
         state['epoch'] = epoch + 1
 
-def generate(dir, *, nice=False):
+def generate(dir, *, epoch=None, nice=False):
     for subdirname in ['generated']:
         subdir = os.path.join(dir, subdirname)
         if not os.path.isdir(subdir):
             os.mkdir(subdir)
     obj = _load_metadata(dir)
     props = obj['props']
+    batch_size = props['batch_size']
     n = props['unit']
     g = generator_model(n)
     g.compile(loss='binary_crossentropy', optimizer='SGD')
-    g.load_weights(os.path.join(dir, 'models', f'generator_{epoch_start:06d}'))
+    if epoch is None:
+        g.load_weights(os.path.join(dir, 'models', 'generator'))
+    else:
+        g.load_weights(os.path.join(dir, 'models', f'generator_{epoch:06d}'))
     if nice:
         d = discriminator_model(n)
         d.compile(loss='binary_crossentropy', optimizer='SGD')
-        d.load_weights(os.path.join(dir, 'models', f'discriminator_{epoch_start:06d}'))
+        if epoch is None:
+            d.load_weights(os.path.join(dir, 'models', 'discriminator'))
+        else:
+            d.load_weights(os.path.join(dir, 'models', f'discriminator_{epoch:06d}'))
         noise = np.random.uniform(-1, 1, (batch_size*20, 100))
         generated_images = g.predict(noise, verbose=1)
         d_pret = d.predict(generated_images, verbose=1)
@@ -205,5 +211,8 @@ def generate(dir, *, nice=False):
         generated_images = g.predict(noise, verbose=1)
         image = combine_images(generated_images)
     image = -image*127.5+127.5
-    image_path = os.path.join(dir, 'generated', f'generated_image_{epoch_start}.png')
+    if epoch is None:
+        image_path = os.path.join(dir, 'generated', 'generated_image.png')
+    else:
+        image_path = os.path.join(dir, 'generated', f'generated_image_{epoch}.png')
     Image.fromarray(image.astype(np.uint8)).save(image_path)
