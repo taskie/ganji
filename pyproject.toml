@@ -8,6 +8,7 @@ authors = ["taskie <t@skie.jp>"]
 python = "^3.6"
 freetype-py = "^2.1.0"
 pillow = "^7.1.2"
+toml = "^0.10.1"
 tensorflow = { version = "^2.2.0", optional = true }
 
 [tool.poetry.dev-dependencies]

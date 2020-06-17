@@ -1,15 +1,14 @@
 """GAN implementation."""
 
-import json
 import math
 import os
-import sys
 
 import numpy as np
 import tensorflow.keras as keras
 from PIL import Image
 
-import ganji.freetype_loader as ft
+import ganji.freetype_loader
+import ganji.project
 
 Sequential = keras.models.Sequential
 
@@ -88,52 +87,22 @@ def combine_images(generated_images):
 
 
 def load_image_data(font, n, codepoints):
-    return ft.load_data_for_gan(font, 4 * n, codepoints)
+    return ganji.freetype_loader.load_data_for_gan(font, 4 * n, codepoints)
 
 
-def _json_path(dir):
-    return os.path.join(dir, "ganji.json")
-
-
-def _dump_metadata(dir, obj):
-    with open(_json_path(dir), "w") as json_file:
-        json.dump(obj, json_file, ensure_ascii=False)
-
-
-def _load_metadata(dir):
-    with open(_json_path(dir)) as json_file:
-        return json.load(json_file)
-
-
-def _data(dir, name):
-    return os.path.join(dir, name)
-
-
-def new(dir, obj):
-    if os.path.exists(dir):
-        print(f"already exists: {dir}", file=sys.stderr)
-        exit(1)
-    os.makedirs(dir)
-    json_path = os.path.join(dir, "ganji.json")
-    if os.path.exists(json_path):
-        print(f"already exists: {json_path}", file=sys.stderr)
-        exit(1)
-    _dump_metadata(dir, obj)
-
-
-def train(dir, *, wgan=False):
+def train(dir):
     # prepare
     for subdirname in ["training", "models"]:
         subdir = os.path.join(dir, subdirname)
         if not os.path.isdir(subdir):
             os.mkdir(subdir)
-    obj = _load_metadata(dir)
+    obj = ganji.project._load_metadata(dir)
     props = obj["props"]
     font = props["font"]
     batch_size = props["batch_size"]
     epoch_end = props["epoch_end"]
     n = props["unit"]
-    codepoints = ft.find_codepoints(props["codepoint_set"])
+    codepoints = ganji.freetype_loader.find_codepoints(props["codepoint_set"])
     state = obj.get("state")
     if state is None:
         state = {"epoch": 0}
@@ -146,23 +115,9 @@ def train(dir, *, wgan=False):
     d_on_g = generator_containing_discriminator(g, d)
     if os.path.exists(os.path.join(dir, "models", "generator.index")):
         g.load_weights(os.path.join(dir, "models", "generator"))
-    if wgan:
-
-        def wasserstein_loss(y_true, y_pred):
-            keras.backend.mean(y_true * y_pred)
-
-        optimizer = RMSprop(lr=0.00005)
-        clip_value = 0.01
-        d_n = 5
-        d_on_g.compile(loss=wasserstein_loss, optimizer=optimizer, metrics=["accuracy"])
-        d.trainable = True
-        d.compile(loss=wasserstein_loss, optimizer=optimizer, metrics=["accuracy"])
-    else:
-        clip_value = None
-        d_n = 1
-        d_on_g.compile(loss="binary_crossentropy", optimizer="SGD")
-        d.trainable = True
-        d.compile(loss="binary_crossentropy", optimizer="ADAM")
+    d_on_g.compile(loss="binary_crossentropy", optimizer="SGD")
+    d.trainable = True
+    d.compile(loss="binary_crossentropy", optimizer="ADAM")
     if os.path.exists(os.path.join(dir, "models", "discriminator.index")):
         d.load_weights(os.path.join(dir, "models", "discriminator"))
     # train
@@ -171,41 +126,29 @@ def train(dir, *, wgan=False):
         print("Number of batches", int(x_train.shape[0] / batch_size))
         for index in range(int(x_train.shape[0] / batch_size)):
             # train discriminator
-            for d_idx in range(d_n):
-                noise = np.random.uniform(-1, 1, size=(batch_size, 100))
-                # image_batch = x_train[index*batch_size:(index+1)*batch_size]
-                image_batch = x_train[np.random.randint(0, x_train.shape[0], batch_size)]
-                generated_images = g.predict(noise, verbose=0)
-                if d_idx == 0 and index == 0 and (epoch < 100 or epoch % 10 == 0):
-                    image = combine_images(generated_images)
-                    image = -image * 127.5 + 127.5
-                    image_path = os.path.join(dir, "training", f"{epoch:06d}.png")
-                    Image.fromarray(image.astype(np.uint8)).save(image_path)
-                x = np.concatenate((image_batch, generated_images))
-                y = np.array([1] * batch_size + [0] * batch_size, dtype=np.bool)
-                d_loss = d.train_on_batch(x, y)
-                if clip_value is not None:
-                    for layer in d.layers:
-                        weights = layer.get_weights()
-                        weights = [np.clip(w, -clip_value, clip_value) for w in weights]
-                        layer.set_weights(weights)
-                if wgan:
-                    print(f"batch: {index:d}, d_loss: {d_loss[0]:f}")
-                else:
-                    print(f"batch: {index:d}, d_loss: {d_loss:f}")
+            noise = np.random.uniform(-1, 1, size=(batch_size, 100))
+            # image_batch = x_train[index*batch_size:(index+1)*batch_size]
+            image_batch = x_train[np.random.randint(0, x_train.shape[0], batch_size)]
+            generated_images = g.predict(noise, verbose=0)
+            if index == 0 and (epoch < 100 or epoch % 10 == 0):
+                image = combine_images(generated_images)
+                image = -image * 127.5 + 127.5
+                image_path = os.path.join(dir, "training", f"{epoch:06d}.png")
+                Image.fromarray(image.astype(np.uint8)).save(image_path)
+            x = np.concatenate((image_batch, generated_images))
+            y = np.array([1] * batch_size + [0] * batch_size, dtype=np.bool)
+            d_loss = d.train_on_batch(x, y)
+            print(f"batch: {index:d}, d_loss: {d_loss:f}")
             # train generator
             noise = np.random.uniform(-1, 1, (batch_size, 100))
             d.trainable = False
             g_loss = d_on_g.train_on_batch(noise, np.array([1] * batch_size, dtype=np.bool))
             d.trainable = True
-            if wgan:
-                print(f"batch: {index:d}, g_loss: {g_loss[0]:f}")
-            else:
-                print(f"batch: {index:d}, g_loss: {g_loss:f}")
+            print(f"batch: {index:d}, g_loss: {g_loss:f}")
         if epoch % 10 == 9:
             g.save_weights(os.path.join(dir, "models", "generator"), True)
             d.save_weights(os.path.join(dir, "models", "discriminator"), True)
-            _dump_metadata(dir, obj)
+            ganji.project._dump_metadata(dir, obj)
         if epoch % 100 == 99:
             e1 = epoch + 1
             g.save_weights(os.path.join(dir, "models", f"generator_{e1:06d}"), True)
@@ -218,7 +161,7 @@ def generate(dir, *, epoch=None, nice=False):
         subdir = os.path.join(dir, subdirname)
         if not os.path.isdir(subdir):
             os.mkdir(subdir)
-    obj = _load_metadata(dir)
+    obj = ganji.project._load_metadata(dir)
     props = obj["props"]
     batch_size = props["batch_size"]
     n = props["unit"]

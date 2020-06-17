@@ -24,18 +24,19 @@ REM  see https://pypi.org/project/freetype-py/ )
 
 ```bat
 poetry run ganji new --font c:\WINDOWS\Fonts\MSMINCHO.TTC msmincho
+cd msmincho
 ```
 
 ### Train
 
 ```bat
-poetry run ganji train msmincho
+poetry run ganji train
 ```
 
 ### Generate
 
 ```bat
-poetry run ganji generate --nice msmincho
+poetry run ganji generate --nice
 ```
 
 ## Tested Environments

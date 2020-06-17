@@ -661,7 +661,7 @@ python-versions = "*"
 version = "1.1.0"
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Python Library for Tom's Obvious, Minimal Language"
 name = "toml"
 optional = false
@@ -753,7 +753,7 @@ testing = ["jaraco.itertools", "func-timeout"]
 tensorflow = ["tensorflow"]
 
 [metadata]
-content-hash = "d376afe141a70029f826999395404af339a245ce3f666b92c6add178678d8ca9"
+content-hash = "c3d0fd971bff93af88b77471a5d482c06913e95defca3833db0e07f129ff9a76"
 python-versions = "^3.6"
 
 [metadata.files]

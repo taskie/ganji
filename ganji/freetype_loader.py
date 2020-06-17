@@ -204,7 +204,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="freetype loader")
     parser.add_argument(
-        "-C",
+        "-c",
         "--codepoint-set",
         help="codepoint set (kanji|jouyou-kanji|hiragana) [default: hiragana]",
         default="hiragana",
