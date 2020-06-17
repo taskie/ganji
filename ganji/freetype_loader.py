@@ -1,9 +1,14 @@
+"""Load TTF as ndarray."""
+
 from typing import Dict, List, Tuple
 
-import numpy as np
 import freetype
+import numpy as np
 
-def _calc_copy_nd(src: Tuple[int, ...], dst: Tuple[int, ...]) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+
+def _calc_copy_nd(
+    src: Tuple[int, ...], dst: Tuple[int, ...]
+) -> Tuple[Tuple[Tuple[int, int], ...], Tuple[Tuple[int, int], ...]]:
     if len(src) != len(dst):
         raise Exception("invalid dimension")
     src_result: List[Tuple[int, int]] = []
@@ -21,16 +26,19 @@ def _calc_copy_nd(src: Tuple[int, ...], dst: Tuple[int, ...]) -> Tuple[Tuple[int
             end = begin + dst_x
             src_result.append((begin, end))
             dst_result.append((0, dst_x))
-    return (tuple(src_result), tuple(dst_result), )
+    return (tuple(src_result), tuple(dst_result))
+
 
 def _copy_2d(src: np.ndarray, dst: np.ndarray):
     s, d = _calc_copy_nd(src.shape, dst.shape)
-    dst[d[0][0]:d[0][1],d[1][0]:d[1][1]] = src[s[0][0]:s[0][1],s[1][0]:s[1][1]]
+    dst[d[0][0] : d[0][1], d[1][0] : d[1][1]] = src[s[0][0] : s[0][1], s[1][0] : s[1][1]]
+
 
 def _setup_face(font_path: str, size: int) -> freetype.Face:
     face = freetype.Face(font_path)
-    face.set_char_size(size*64)
+    face.set_char_size(size * 64)
     return face
+
 
 def _make_glyph_bitmap(face: freetype.Face, codepoint: int) -> np.ndarray:
     char_index = face.get_char_index(codepoint)
@@ -47,13 +55,16 @@ def _make_glyph_bitmap(face: freetype.Face, codepoint: int) -> np.ndarray:
     glyph_bitmap = np.reshape(np.array(bitmap.buffer, dtype=np.uint8), glyph_size)
     return glyph_bitmap
 
+
 def _convert_codepoints_from_str(s: str) -> List[int]:
     return [ord(c) for c in s if not c.isspace()]
 
+
 def _convert_codepoints_from_ranges(codepoint_ranges: List[Tuple[int, int]]) -> List[int]:
-    return [codepoint
-            for codepoint_range in codepoint_ranges
-            for codepoint in range(codepoint_range[0], codepoint_range[1])]
+    return [
+        codepoint for codepoint_range in codepoint_ranges for codepoint in range(codepoint_range[0], codepoint_range[1])
+    ]
+
 
 def _make_glyph_bitmap_dict(face: freetype.Face, codepoints: List[int]) -> Dict[int, np.ndarray]:
     result = {}
@@ -67,6 +78,7 @@ def _make_glyph_bitmap_dict(face: freetype.Face, codepoints: List[int]) -> Dict[
             pass
     return result
 
+
 def _convert_bitmap_value_to_str(x: int) -> str:
     if x > 192:
         return "**"
@@ -77,20 +89,34 @@ def _convert_bitmap_value_to_str(x: int) -> str:
     else:
         return "  "
 
+
 def _convert_bitmap_to_asciiart(bitmap: np.ndarray) -> str:
     s = ""
     for i in range(bitmap.shape[0]):
         s += "".join(_convert_bitmap_value_to_str(x) for x in bitmap[i]) + "\n"
     return s
 
-def load_data_for_gan(font_path: str, size: int, codepoints: List[int]) -> np.ndarray:
+
+def load_data_for_gan(
+    font_path: str, size: int, codepoints: List[int], *, thickness_min: float = None, thickness_max: float = None
+) -> np.ndarray:
     face = _setup_face(font_path, size)
     glyph_bitmap_dict = _make_glyph_bitmap_dict(face, codepoints)
-    count = len(glyph_bitmap_dict)
+    items = []
+    if thickness_min is None and thickness_max is None:
+        for (_codepoint, glyph_bitmap) in sorted(glyph_bitmap_dict.items()):
+            items.append(glyph_bitmap)
+    else:
+        for (_codepoint, glyph_bitmap) in sorted(glyph_bitmap_dict.items()):
+            thickness = np.average(glyph_bitmap)
+            if thickness_min <= thickness < thickness_max:
+                items.append(glyph_bitmap)
+    count = len(items)
     data = np.zeros((count, size, size, 1), dtype=np.uint8)
-    for i, (_codepoint, glyph_bitmap) in enumerate(sorted(glyph_bitmap_dict.items())):
+    for i, glyph_bitmap in enumerate(items):
         _copy_2d(glyph_bitmap, data[i, :, :, 0])
     return data
+
 
 def load_data_for_pix2pix(font_paths: List[str], size: int, codepoints: List[int]) -> np.ndarray:
     glyph_bitmap_dicts: List[Dict[int, np.ndarray]] = []
@@ -109,7 +135,13 @@ def load_data_for_pix2pix(font_paths: List[str], size: int, codepoints: List[int
             _copy_2d(glyph_bitmap, data[dict_index, i, :, :, 0])
     return data
 
-KANJI_CODEPOINT_RANGES = [(0x3400, 0x4DC0), (0x4E00, 0xA000), (0xF900, 0xFB00), (0x20000, 0x30000)]
+
+KANJI_CODEPOINT_RANGES = [
+    (0x3400, 0x4DC0),
+    (0x4E00, 0xA000),
+    (0xF900, 0xFB00),
+    (0x20000, 0x30000),
+]
 KANJI_CODEPOINTS = _convert_codepoints_from_ranges(KANJI_CODEPOINT_RANGES)
 
 JOUYOU_KANJI_STR = """
@@ -157,23 +189,32 @@ HIRAGANA_CODEPOINT_RANGES = [(0x3041, 0x3097)]
 HIRAGANA_CODEPOINTS = _convert_codepoints_from_ranges(HIRAGANA_CODEPOINT_RANGES)
 
 CODEPOINTS_MAP = {
-    'kanji': KANJI_CODEPOINTS,
-    'jouyou-kanji': JOUYOU_KANJI_CODEPOINTS,
-    'hiragana': HIRAGANA_CODEPOINTS,
+    "kanji": KANJI_CODEPOINTS,
+    "jouyou_kanji": JOUYOU_KANJI_CODEPOINTS,
+    "hiragana": HIRAGANA_CODEPOINTS,
 }
 
-def find_codepoints(key, *, map=CODEPOINTS_MAP):
-    return CODEPOINTS_MAP[key.replace('-', '_').lower()]
 
-if __name__ == '__main__':
+def find_codepoints(key: str, *, map: Dict[str, List[int]] = CODEPOINTS_MAP) -> List[int]:
+    return CODEPOINTS_MAP[key.replace("-", "_").lower()]
+
+
+if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='freetype loader')
-    parser.add_argument('-C', '--codepoint-set', help='codepoint set (kanji|jouyou-kanji|hiragana) [default: hiragana]', default='hiragana')
-    parser.add_argument('-S', '--size', type=int, help='size [default: 32]', default=32)
-    parser.add_argument('fonts', help='font files', nargs='*')
+
+    parser = argparse.ArgumentParser(description="freetype loader")
+    parser.add_argument(
+        "-C",
+        "--codepoint-set",
+        help="codepoint set (kanji|jouyou-kanji|hiragana) [default: hiragana]",
+        default="hiragana",
+    )
+    parser.add_argument("-S", "--size", type=int, help="size [default: 32]", default=32)
+    parser.add_argument("fonts", help="font files", nargs="*")
     args = parser.parse_args()
     codepoints = find_codepoints(args.codepoint_set)
     for font in args.fonts:
         data = load_data_for_gan(font, args.size, codepoints)
+        print(data.shape)
         for i in range(data.shape[0]):
-            print(_convert_bitmap_to_asciiart(data[i,:,:,0]))
+            print(_convert_bitmap_to_asciiart(data[i, :, :, 0]))
