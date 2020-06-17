@@ -38,6 +38,7 @@ def new(dir, obj):
         print(f"already exists: {dir}", file=sys.stderr)
         exit(1)
     os.mkdir(dir)
+    obj["props"]["font"] = os.path.abspath(obj["props"]["font"])
     init(dir, obj)
 
 

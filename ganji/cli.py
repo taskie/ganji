@@ -35,7 +35,7 @@ def main():
     new_parser.add_argument("-E", "--epoch-end", type=int, help="epoch end", default=10000)
     new_parser.add_argument("-F", "--font", help="font file", required=True)
     new_parser.add_argument("-N", "--unit", type=int, help="(size / 4) [default: 10]", default=10)
-    new_parser.add_argument("DIR", help="project directory")
+    new_parser.add_argument("dir", help="project directory")
     new_parser.set_defaults(handler=command_new)
 
     def command_init(args):
