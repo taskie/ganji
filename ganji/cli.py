@@ -69,7 +69,7 @@ def main():
 
     generate_parser = subparsers.add_parser("generate", help="generate output")
     generate_parser.add_argument("-e", "--epoch", type=int, help="specify epoch")
-    generate_parser.add_argument("-n", "--nice", type=bool, help="generate nicer output", default=False)
+    generate_parser.add_argument("-n", "--nice", help="generate nicer output", default=False, action="store_true")
     generate_parser.set_defaults(handler=command_generate)
 
     args = parser.parse_args()
