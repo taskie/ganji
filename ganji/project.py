@@ -1,52 +1,60 @@
 """Manipulate GANJI project."""
 
-import json
 import os
 import sys
+from typing import Optional
 
-import toml
+from serde.json import from_json, to_json
+from serde.toml import from_toml, to_toml
+
+from ganji.model import Config, State
 
 
-def _props_path(dir):
+def _config_path(dir: str):
     return os.path.join(dir, "ganji.toml")
 
 
-def _state_path(dir):
+def _dump_config(dir: str, config: Config):
+    s = to_toml(config)
+    with open(_config_path(dir), "w") as config_file:
+        config_file.write(s)
+
+
+def _load_config(dir: str) -> Config:
+    with open(_config_path(dir)) as config_file:
+        return from_toml(Config, config_file.read())
+
+
+def _state_path(dir: str):
     return os.path.join(dir, "state.json")
 
 
-def _dump_metadata(dir, obj):
-    with open(_props_path(dir), "w") as props_file:
-        toml.dump(obj["props"], props_file)
-    state = obj.get("state")
-    if state is not None:
-        with open(_state_path(dir), "w") as state_file:
-            json.dump(state, state_file, ensure_ascii=False)
+def _dump_state(dir: str, state: State):
+    s = to_json(state)
+    with open(_state_path(dir), "w") as state_file:
+        state_file.write(s)
 
 
-def _load_metadata(dir):
-    obj = {}
-    with open(_props_path(dir)) as props_file:
-        obj["props"] = toml.load(props_file)
+def _load_state(dir: str) -> Optional[State]:
     state_path = _state_path(dir)
     if os.path.exists(state_path):
         with open(state_path) as state_file:
-            obj["state"] = json.load(state_file)
-    return obj
+            return from_json(State, state_file.read())
+    else:
+        return None
 
 
-def new(dir, obj):
+def new(dir: str, config: Config):
     if os.path.exists(dir):
         print(f"already exists: {dir}", file=sys.stderr)
         exit(1)
     os.mkdir(dir)
-    obj["props"]["font"] = os.path.abspath(obj["props"]["font"])
-    init(dir, obj)
+    init(dir, config)
 
 
-def init(dir, obj):
-    json_path = os.path.join(dir, "ganji.toml")
-    if os.path.exists(json_path):
-        print(f"already exists: {json_path}", file=sys.stderr)
+def init(dir: str, config: Config):
+    config_path = _config_path(dir)
+    if os.path.exists(config_path):
+        print(f"already exists: {config_path}", file=sys.stderr)
         exit(1)
-    _dump_metadata(dir, obj)
+    _dump_config(dir, config)

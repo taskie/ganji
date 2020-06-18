@@ -2,12 +2,14 @@
 
 import math
 import os
+from datetime import datetime
 
 import numpy as np
 import tensorflow.keras as keras
 from PIL import Image
 
 import ganji.freetype_loader
+import ganji.model
 import ganji.project
 
 Sequential = keras.models.Sequential
@@ -96,18 +98,20 @@ def train(dir):
         subdir = os.path.join(dir, subdirname)
         if not os.path.isdir(subdir):
             os.mkdir(subdir)
-    obj = ganji.project._load_metadata(dir)
-    props = obj["props"]
-    font = props["font"]
-    batch_size = props["batch_size"]
-    epoch_end = props["epoch_end"]
-    n = props["unit"]
-    codepoints = ganji.freetype_loader.find_codepoints(props["codepoint_set"])
-    state = obj.get("state")
+
+    config = ganji.project._load_config(dir)
+    state = ganji.project._load_state(dir)
     if state is None:
-        state = {"epoch": 0}
-        obj["state"] = state
-    epoch_start = state["epoch"]
+        state = ganji.model._initial_state(config)
+    else:
+        state.config = config
+    font = config.font
+    batch_size = config.batch_size
+    epoch_end = config.epoch_end
+    n = config.unit
+    codepoints = ganji.freetype_loader.find_codepoints(config.codepoint_set)
+    epoch_start = state.epoch
+
     x_train = load_image_data(font, n, codepoints)
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
     d = discriminator_model(n)
@@ -148,12 +152,13 @@ def train(dir):
         if epoch % 10 == 9:
             g.save_weights(os.path.join(dir, "models", "generator"), True)
             d.save_weights(os.path.join(dir, "models", "discriminator"), True)
-            ganji.project._dump_metadata(dir, obj)
+            ganji.project._dump_state(dir, state)
         if epoch % 100 == 99:
             e1 = epoch + 1
             g.save_weights(os.path.join(dir, "models", f"generator_{e1:06d}"), True)
             d.save_weights(os.path.join(dir, "models", f"discriminator_{e1:06d}"), True)
-        state["epoch"] = epoch + 1
+        state.epoch = epoch + 1
+        state.update_time = datetime.now().timestamp()
 
 
 def generate(dir, *, epoch=None, nice=False):
@@ -161,10 +166,11 @@ def generate(dir, *, epoch=None, nice=False):
         subdir = os.path.join(dir, subdirname)
         if not os.path.isdir(subdir):
             os.mkdir(subdir)
-    obj = ganji.project._load_metadata(dir)
-    props = obj["props"]
-    batch_size = props["batch_size"]
-    n = props["unit"]
+
+    config = ganji.project._load_config(dir)
+    batch_size = config.batch_size
+    n = config.unit
+
     g = generator_model(n)
     g.compile(loss="binary_crossentropy", optimizer="SGD")
     if epoch is None:

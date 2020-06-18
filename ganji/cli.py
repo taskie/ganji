@@ -4,18 +4,17 @@ import argparse
 import os
 
 import ganji.project
+from ganji.model import Config
 
 
-def _args_to_dict(args):
-    return {
-        "props": {
-            "batch_size": args.batch_size,
-            "codepoint_set": args.codepoint_set,
-            "epoch_end": args.epoch_end,
-            "font": args.font,
-            "unit": args.unit,
-        },
-    }
+def _args_to_config(args) -> Config:
+    return Config(
+        batch_size=args.batch_size,
+        codepoint_set=args.codepoint_set,
+        epoch_end=args.epoch_end,
+        font=args.font,
+        unit=args.unit,
+    )
 
 
 def main():
@@ -25,7 +24,7 @@ def main():
     subparsers = parser.add_subparsers()
 
     def command_new(args):
-        ganji.project.new(args.dir, _args_to_dict(args))
+        ganji.project.new(args.dir, _args_to_config(args))
 
     new_parser = subparsers.add_parser("new", help="create project directory")
     new_parser.add_argument("-B", "--batch-size", type=int, help="batch_size", default=1024)
@@ -40,7 +39,7 @@ def main():
 
     def command_init(args):
         dir = os.getcwd() if args.directory is None else args.directory
-        ganji.project.init(dir, _args_to_dict(args))
+        ganji.project.init(dir, _args_to_config(args))
 
     init_parser = subparsers.add_parser("init", help="initialize project directory")
     init_parser.add_argument("-B", "--batch-size", type=int, help="batch_size", default=1024)
