@@ -18,7 +18,7 @@ def _args_to_config(args) -> Config:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="freetype loader")
+    parser = argparse.ArgumentParser(description="This kanji does not exist.")
     parser.add_argument("-C", "--directory", help="project directory")
 
     subparsers = parser.add_subparsers()

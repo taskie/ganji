@@ -202,7 +202,7 @@ def find_codepoints(key: str, *, map: Dict[str, List[int]] = CODEPOINTS_MAP) -> 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="freetype loader")
+    parser = argparse.ArgumentParser(description="FreeType loader")
     parser.add_argument(
         "-c",
         "--codepoint-set",
