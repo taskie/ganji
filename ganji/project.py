@@ -28,8 +28,10 @@ def _load_metadata(dir):
     obj = {}
     with open(_props_path(dir)) as props_file:
         obj["props"] = toml.load(props_file)
-    with open(_state_path(dir)) as state_file:
-        obj["state"] = json.load(state_file)
+    state_path = _state_path(dir)
+    if os.path.exists(state_path):
+        with open(state_path) as state_file:
+            obj["state"] = json.load(state_file)
     return obj
 
 
