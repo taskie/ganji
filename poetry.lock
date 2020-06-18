@@ -753,8 +753,8 @@ testing = ["jaraco.itertools", "func-timeout"]
 tensorflow = ["tensorflow"]
 
 [metadata]
-content-hash = "c3d0fd971bff93af88b77471a5d482c06913e95defca3833db0e07f129ff9a76"
-python-versions = "^3.6"
+content-hash = "80f42405f23aa5e327dfbea006ea27e5c9d0a24f7595896ff943942efebe572a"
+python-versions = "^3.7"
 
 [metadata.files]
 absl-py = [

@@ -6,7 +6,10 @@ This kanji does not exist.
 
 This project uses [Poetry](https://python-poetry.org/).
 
+### Windows
+
 ```bat
+chcp 65001
 git clone https://github.com/taskie/ganji.git
 cd ganji
 REM (if you want to create .venv under the project directory)
@@ -23,8 +26,8 @@ REM  see https://pypi.org/project/freetype-py/ )
 ### Initialize
 
 ```bat
-poetry run ganji new --font c:\WINDOWS\Fonts\MSMINCHO.TTC msmincho
-cd msmincho
+poetry run ganji new --font c:\WINDOWS\Fonts\IPAEXM.TTF ipaexm
+cd ipaexm
 ```
 
 ### Train
@@ -42,6 +45,7 @@ poetry run ganji generate --nice
 ## Tested Environments
 
 * Windows 10 Home
+* Python 3.7.7
 * NVIDIA GeForce GTX 1060 6GB
 * CUDA 10.1.243
 * cuDNN 7.6.5
