@@ -77,11 +77,15 @@ def _normalize_range(
     return (max(begin, begin_min), min(end, end_max))
 
 
-def _make_thickness_dict(bitmaps_dict: Dict[int, List[np.ndarray]]) -> Dict[int, float]:
+def _make_thickness_dict(bitmaps_dict: Dict[int, List[np.ndarray]], sizes: List[int]) -> Dict[int, float]:
     # bitmaps_dict[codepoint][face_index]: shape=(size, size)
     thickness_dict: Dict[int, float] = {}
     for codepoint, bitmaps in bitmaps_dict.items():
-        thickness_dict[codepoint] = np.sum(bitmaps) / 255
+        for i, bitmap in enumerate(bitmaps):
+            if codepoint not in thickness_dict:
+                thickness_dict[codepoint] = 0.0
+            thickness_dict[codepoint] += np.sum(bitmap) / (sizes[i] ** 2)
+    thickness_dict = {k: v / len(sizes) for k, v in thickness_dict.items()}
     return thickness_dict
 
 
@@ -96,6 +100,7 @@ def _calc_range_from_quantiles(
 
 def _filter_bitmaps_dict(
     bitmaps_dict: Dict[int, List[np.ndarray]],
+    sizes: List[int],
     *,
     thickness_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
     thickness_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
@@ -106,7 +111,7 @@ def _filter_bitmaps_dict(
         if thickness_quantiles[0] is None and thickness_quantiles[1] is None:
             thickness_quantiles = None
     if thickness_range is not None or thickness_quantiles is not None:
-        thickness_dict = _make_thickness_dict(bitmaps_dict)
+        thickness_dict = _make_thickness_dict(bitmaps_dict, sizes)
         if thickness_quantiles is not None and thickness_range is None:
             thickness_range = _calc_range_from_quantiles(list(thickness_dict.values()), thickness_quantiles)
         if thickness_range is not None:
@@ -141,7 +146,10 @@ def load_bitmaps(
         if len(glyph_bitmaps) != len(fonts):
             del glyph_bitmaps_dict[codepoint]
     glyph_bitmaps_dict = _filter_bitmaps_dict(
-        glyph_bitmaps_dict, thickness_range=thickness_range, thickness_quantiles=thickness_quantiles
+        glyph_bitmaps_dict,
+        sizes=[f[2] for f in fonts],
+        thickness_range=thickness_range,
+        thickness_quantiles=thickness_quantiles,
     )
     return glyph_bitmaps_dict
 

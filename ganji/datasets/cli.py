@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 
 from ganji.datasets.codepoints import find_codepoints, str_to_codepoints
-from ganji.datasets.font import load_data_for_gan
+from ganji.datasets.font import _make_thickness_dict, load_bitmaps, load_data_for_gan
 
 
 def _bitmap_value_to_str(x: int) -> str:
@@ -46,6 +46,7 @@ def main():
     parser.add_argument(
         "-t", "--thickness-quantile-min", type=float, help="quantile of minimum thickness", default=None
     )
+    parser.add_argument("--show-thickness", help="show thickness", default=False, action="store_true")
     args = parser.parse_args()
     if args.characters is not None:
         codepoints = str_to_codepoints(args.characters)
@@ -54,6 +55,16 @@ def main():
     thickness_quantiles = (args.thickness_quantile_min, args.thickness_quantile_max)
     if thickness_quantiles[0] is None and thickness_quantiles[1] is None:
         thickness_quantiles = None
+
+    if args.show_thickness:
+        bitmaps = load_bitmaps(
+            codepoints, [(args.font, args.font_index, args.size)], thickness_quantiles=thickness_quantiles
+        )
+        thickness_dict = _make_thickness_dict(bitmaps, sizes=[args.size])
+        for (codepoint, thickness) in sorted(thickness_dict.items(), key=lambda t: t[1]):
+            print(f"{chr(codepoint)} (U+{codepoint:04X}) {thickness}")
+        return
+
     data = load_data_for_gan(
         codepoints, args.font, args.size, font_index=args.font_index, thickness_quantiles=thickness_quantiles,
     )
