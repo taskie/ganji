@@ -1,5 +1,5 @@
-import ganji.freetype_loader as ft
+import ganji.datasets
 
 
 def test_find_codepoints():
-    assert ord("あ") in ft.find_codepoints("hiragana")
+    assert ord("あ") in ganji.datasets.find_codepoints("hiragana")

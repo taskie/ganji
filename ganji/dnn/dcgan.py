@@ -8,8 +8,7 @@ import numpy as np
 import tensorflow.keras as keras
 from PIL import Image
 
-import ganji.freetype_loader
-import ganji.model
+import ganji.datasets
 import ganji.project
 
 Sequential = keras.models.Sequential
@@ -88,8 +87,19 @@ def combine_images(generated_images):
     return image
 
 
-def load_image_data(font, n, codepoints):
-    return ganji.freetype_loader.load_data_for_gan(font, 4 * n, codepoints)
+def load_image_data(dir, config):
+    path = os.path.join(dir, "dataset.npy")
+    if os.path.exists(path):
+        return np.load(path)
+    else:
+        codepoints = ganji.datasets.find_codepoints(config.codepoint_set)
+        font_index = 0 if config.font_index is None else config.font_index
+        thickness_quantiles = (config.thickness_quantile_min, config.thickness_quantile_max)
+        data = ganji.datasets.load_data_for_gan(
+            codepoints, config.font, 4 * config.unit, font_index=font_index, thickness_quantiles=thickness_quantiles
+        )
+        np.save(path, data)
+        return data
 
 
 def train(dir):
@@ -99,20 +109,14 @@ def train(dir):
         if not os.path.isdir(subdir):
             os.mkdir(subdir)
 
-    config = ganji.project._load_config(dir)
-    state = ganji.project._load_state(dir)
-    if state is None:
-        state = ganji.model._initial_state(config)
-    else:
-        state.config = config
-    font = config.font
+    config, state = ganji.project.load_metadata(dir)
+
     batch_size = config.batch_size
     epoch_end = config.epoch_end
     n = config.unit
-    codepoints = ganji.freetype_loader.find_codepoints(config.codepoint_set)
     epoch_start = state.epoch
 
-    x_train = load_image_data(font, n, codepoints)
+    x_train = load_image_data(dir, config)
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
     d = discriminator_model(n)
     g = generator_model(n)
@@ -127,18 +131,14 @@ def train(dir):
     # train
     for epoch in range(epoch_start, epoch_end):
         print("Epoch is", epoch)
-        print("Number of batches", int(x_train.shape[0] / batch_size))
-        for index in range(int(x_train.shape[0] / batch_size)):
+        batch_count = int(x_train.shape[0] / batch_size)
+        print("Number of batches", batch_count)
+        for index in range(batch_count):
             # train discriminator
             noise = np.random.uniform(-1, 1, size=(batch_size, 100))
             # image_batch = x_train[index*batch_size:(index+1)*batch_size]
             image_batch = x_train[np.random.randint(0, x_train.shape[0], batch_size)]
             generated_images = g.predict(noise, verbose=0)
-            if index == 0 and (epoch < 100 or epoch % 10 == 0):
-                image = combine_images(generated_images)
-                image = -image * 127.5 + 127.5
-                image_path = os.path.join(dir, "training", f"{epoch:06d}.png")
-                Image.fromarray(image.astype(np.uint8)).save(image_path)
             x = np.concatenate((image_batch, generated_images))
             y = np.array([1] * batch_size + [0] * batch_size, dtype=np.bool)
             d_loss = d.train_on_batch(x, y)
@@ -149,16 +149,24 @@ def train(dir):
             g_loss = d_on_g.train_on_batch(noise, np.array([1] * batch_size, dtype=np.bool))
             d.trainable = True
             print(f"batch: {index:d}, g_loss: {g_loss:f}")
-        if epoch % 10 == 9:
+            first = epoch == 0 and index == 0
+            last = index == batch_count - 1
+            if first or last:
+                image = combine_images(generated_images)
+                image = -image * 127.5 + 127.5
+                e1 = 0 if first else epoch + 1
+                image_path = os.path.join(dir, "training", f"{e1:06d}.png")
+                Image.fromarray(image.astype(np.uint8)).save(image_path)
+        state.epoch = epoch + 1
+        state.update_time = datetime.now().timestamp()
+        if epoch % 10 == 9 or epoch == epoch_end - 1:
             g.save_weights(os.path.join(dir, "models", "generator"), True)
             d.save_weights(os.path.join(dir, "models", "discriminator"), True)
-            ganji.project._dump_state(dir, state)
-        if epoch % 100 == 99:
+            ganji.project.dump_state(dir, state)
+        if epoch % 100 == 99 or epoch == epoch_end - 1:
             e1 = epoch + 1
             g.save_weights(os.path.join(dir, "models", f"generator_{e1:06d}"), True)
             d.save_weights(os.path.join(dir, "models", f"discriminator_{e1:06d}"), True)
-        state.epoch = epoch + 1
-        state.update_time = datetime.now().timestamp()
 
 
 def generate(dir, *, epoch=None, nice=False):

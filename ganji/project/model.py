@@ -15,7 +15,10 @@ class Config:
     codepoint_set: str
     epoch_end: int
     font: str
+    font_index: Optional[int]
     unit: int
+    thickness_quantile_min: Optional[float]
+    thickness_quantile_max: Optional[float]
 
 
 @deserialize

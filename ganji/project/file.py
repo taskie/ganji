@@ -1,13 +1,13 @@
-"""Manipulate GANJI project."""
+"""Manipulate files of GANJI project."""
 
 import os
 import sys
-from typing import Optional
+from typing import Optional, Tuple
 
 from serde.json import from_json, to_json
 from serde.toml import from_toml, to_toml
 
-from ganji.model import Config, State
+from ganji.project.model import Config, State, _initial_state
 
 
 def _config_path(dir: str):
@@ -29,7 +29,7 @@ def _state_path(dir: str):
     return os.path.join(dir, "state.json")
 
 
-def _dump_state(dir: str, state: State):
+def dump_state(dir: str, state: State):
     s = to_json(state)
     with open(_state_path(dir), "w") as state_file:
         state_file.write(s)
@@ -42,6 +42,16 @@ def _load_state(dir: str) -> Optional[State]:
             return from_json(State, state_file.read())
     else:
         return None
+
+
+def load_metadata(dir: str) -> Tuple[Config, State]:
+    config = _load_config(dir)
+    state = _load_state(dir)
+    if state is None:
+        state = _initial_state(config)
+    else:
+        state.config = config
+    return (config, state)
 
 
 def new(dir: str, config: Config):
