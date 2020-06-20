@@ -97,13 +97,17 @@ def load_image_data(dir, config):
         codepoints = ganji.datasets.find_codepoints(config.codepoint_set)
         font_index = 0 if config.font_index is None else config.font_index
         thickness_quantiles = (config.thickness_quantile_min, config.thickness_quantile_max)
+        if config.data_set_random_seed is not None:
+            randomizer = random.Random(config.data_set_random_seed)
+        else:
+            randomizer = None
         data = ganji.datasets.load_data_for_gan(
             codepoints,
             config.font,
             4 * config.unit,
             font_index=font_index,
             thickness_quantiles=thickness_quantiles,
-            randomizer=random.Random(),
+            randomizer=randomizer,
         )
         np.save(path, data)
         return data

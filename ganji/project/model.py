@@ -19,6 +19,7 @@ class Config:
     unit: int
     thickness_quantile_min: Optional[float]
     thickness_quantile_max: Optional[float]
+    data_set_random_seed: Optional[int]
 
 
 @deserialize

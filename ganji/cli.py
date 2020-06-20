@@ -16,6 +16,7 @@ def _args_to_config(args) -> ganji.project.Config:
         unit=args.unit,
         thickness_quantile_min=args.thickness_quantile_min,
         thickness_quantile_max=args.thickness_quantile_max,
+        data_set_random_seed=args.data_set_random_seed,
     )
 
 
@@ -33,6 +34,9 @@ def add_init_arguments(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "-t", "--thickness-quantile-min", type=float, help="quantile of minimum thickness", default=None
+    )
+    parser.add_argument(
+        "--data-set-random-seed", type=int, help="seed for PRNG to generate a data set [default: 0]", default=0
     )
 
 

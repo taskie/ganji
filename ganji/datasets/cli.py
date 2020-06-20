@@ -1,6 +1,7 @@
 """Command Line Interface."""
 
 import argparse
+import random
 
 import numpy as np
 
@@ -67,8 +68,6 @@ def main():
         return
 
     if args.randomize:
-        import random
-
         randomizer = random.Random()
     else:
         randomizer = None
