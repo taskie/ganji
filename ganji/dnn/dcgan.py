@@ -4,6 +4,7 @@ import math
 import os
 from datetime import datetime
 
+import h5py
 import numpy as np
 import tensorflow.keras as keras
 from PIL import Image
@@ -116,6 +117,13 @@ def train(dir):
     n = config.unit
     epoch_start = state.epoch
 
+    log_path = os.path.join(dir, "log.hdf5")
+    if not os.path.exists(log_path):
+        with h5py.File(log_path, "a") as f:
+            f.create_dataset("epoch", (1,), dtype=np.int32)
+            f.create_dataset("g_loss", (epoch_end + 1,), maxshape=(None,), dtype=np.float32)
+            f.create_dataset("d_loss", (epoch_end + 1,), maxshape=(None,), dtype=np.float32)
+
     x_train = load_image_data(dir, config)
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
     d = discriminator_model(n)
@@ -133,11 +141,13 @@ def train(dir):
         print("Epoch is", epoch)
         batch_count = int(x_train.shape[0] / batch_size)
         print("Number of batches", batch_count)
+        g_loss = None
+        d_loss = None
         for index in range(batch_count):
             # train discriminator
             noise = np.random.uniform(-1, 1, size=(batch_size, 100))
-            # image_batch = x_train[index*batch_size:(index+1)*batch_size]
-            image_batch = x_train[np.random.randint(0, x_train.shape[0], batch_size)]
+            image_batch = x_train[index * batch_size : (index + 1) * batch_size]
+            # image_batch = x_train[np.random.randint(0, x_train.shape[0], batch_size)]
             generated_images = g.predict(noise, verbose=0)
             x = np.concatenate((image_batch, generated_images))
             y = np.array([1] * batch_size + [0] * batch_size, dtype=np.bool)
@@ -157,8 +167,14 @@ def train(dir):
                 e1 = 0 if first else epoch + 1
                 image_path = os.path.join(dir, "training", f"{e1:06d}.png")
                 Image.fromarray(image.astype(np.uint8)).save(image_path)
+
         state.epoch = epoch + 1
         state.update_time = datetime.now().timestamp()
+
+        with h5py.File(log_path, "a") as log_file:
+            log_file["epoch"][0] = state.epoch
+            log_file["g_loss"][state.epoch] = g_loss
+            log_file["d_loss"][state.epoch] = d_loss
         if epoch % 10 == 9 or epoch == epoch_end - 1:
             g.save_weights(os.path.join(dir, "models", "generator"), True)
             d.save_weights(os.path.join(dir, "models", "discriminator"), True)
@@ -215,3 +231,14 @@ def generate(dir, *, epoch=None, nice=False):
     else:
         image_path = os.path.join(dir, "generated", f"generated_image_{epoch:06d}.png")
     Image.fromarray(image.astype(np.uint8)).save(image_path)
+
+
+def log(dir):
+    log_path = os.path.join(dir, "log.hdf5")
+    with h5py.File(log_path, "r") as log_file:
+        epoch = int(log_file["epoch"][0])
+        g_losses = log_file["g_loss"]
+        d_losses = log_file["d_loss"]
+        print("# g_loss, d_loss")
+        for i in range(epoch):
+            print(f"{i},{g_losses[i]},{d_losses[i]}")

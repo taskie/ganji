@@ -78,6 +78,15 @@ def main():
     generate_parser.add_argument("-n", "--nice", help="generate nicer output", default=False, action="store_true")
     generate_parser.set_defaults(handler=command_generate)
 
+    def command_log(args):
+        import ganji.dnn.dcgan  # deferred
+
+        dir = os.getcwd() if args.directory is None else args.directory
+        ganji.dnn.dcgan.log(dir)
+
+    log_parser = subparsers.add_parser("log", help="show logs")
+    log_parser.set_defaults(handler=command_log)
+
     args = parser.parse_args()
     if hasattr(args, "handler"):
         args.handler(args)
