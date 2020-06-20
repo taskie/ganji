@@ -34,7 +34,7 @@ def main():
     parser.add_argument(
         "-c",
         "--codepoint-set",
-        help="codepoint set (kanji|jouyou-kanji|hiragana|ascii) [default: kanji]",
+        help="codepoint set (kanji|joyo-kanji|hiragana|ascii) [default: kanji]",
         default="kanji",
     )
     parser.add_argument("-F", "--font", help="font file", required=True)

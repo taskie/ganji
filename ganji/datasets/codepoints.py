@@ -24,7 +24,7 @@ KANJI_CODEPOINT_RANGES = [
 ]
 KANJI_CODEPOINTS = ranges_to_codepoints(KANJI_CODEPOINT_RANGES)
 
-JOUYOU_KANJI_STR = """
+JOYO_KANJI_STR = """
 亜哀挨愛曖悪握圧扱宛嵐安案暗以衣位囲医依委威為畏胃尉異移萎偉椅彙意違維慰遺緯域育一壱逸茨芋引印因咽姻員院淫陰飲隠韻右宇
 羽雨唄鬱畝浦運雲永泳英映栄営詠影鋭衛易疫益液駅悦越謁閲円延沿炎宴怨媛援園煙猿遠鉛塩演縁艶汚王凹央応往押旺欧殴桜翁奥横岡
 屋億憶臆虞乙俺卸音恩温穏下化火加可仮何花佳価果河苛科架夏家荷華菓貨渦過嫁暇禍靴寡歌箇稼課蚊牙瓦我画芽賀雅餓介回灰会快戒
@@ -63,7 +63,7 @@ JOUYOU_KANJI_STR = """
 陵量僚領寮療瞭糧力緑林厘倫輪隣臨瑠涙累塁類令礼冷励戻例鈴零霊隷齢麗暦歴列劣烈裂恋連廉練錬呂炉賂路露老労弄郎朗浪廊楼漏籠
 六録麓論和話賄脇惑枠湾腕
 """
-JOUYOU_KANJI_CODEPOINTS = str_to_codepoints(JOUYOU_KANJI_STR)
+JOYO_KANJI_CODEPOINTS = str_to_codepoints(JOYO_KANJI_STR)
 
 HIRAGANA_CODEPOINT_RANGES = [(0x3041, 0x3097)]
 HIRAGANA_CODEPOINTS = ranges_to_codepoints(HIRAGANA_CODEPOINT_RANGES)
@@ -71,7 +71,7 @@ HIRAGANA_CODEPOINTS = ranges_to_codepoints(HIRAGANA_CODEPOINT_RANGES)
 CODEPOINTS_MAP = {
     "ascii": ASCII_CODEPOINTS,
     "kanji": KANJI_CODEPOINTS,
-    "jouyou_kanji": JOUYOU_KANJI_CODEPOINTS,
+    "joyo_kanji": JOYO_KANJI_CODEPOINTS,
     "hiragana": HIRAGANA_CODEPOINTS,
 }
 
