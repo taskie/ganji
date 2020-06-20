@@ -251,6 +251,6 @@ def log(dir):
         epoch = int(log_file["epoch"][0])
         g_losses = log_file["g_loss"]
         d_losses = log_file["d_loss"]
-        print("# g_loss, d_loss")
+        print("epoch,g_loss,d_loss")
         for i in range(epoch):
             print(f"{i},{g_losses[i]},{d_losses[i]}")
