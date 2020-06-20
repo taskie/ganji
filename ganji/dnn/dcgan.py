@@ -2,6 +2,7 @@
 
 import math
 import os
+import random
 from datetime import datetime
 
 import h5py
@@ -97,7 +98,12 @@ def load_image_data(dir, config):
         font_index = 0 if config.font_index is None else config.font_index
         thickness_quantiles = (config.thickness_quantile_min, config.thickness_quantile_max)
         data = ganji.datasets.load_data_for_gan(
-            codepoints, config.font, 4 * config.unit, font_index=font_index, thickness_quantiles=thickness_quantiles
+            codepoints,
+            config.font,
+            4 * config.unit,
+            font_index=font_index,
+            thickness_quantiles=thickness_quantiles,
+            randomizer=random.Random(),
         )
         np.save(path, data)
         return data

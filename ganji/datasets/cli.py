@@ -47,6 +47,7 @@ def main():
         "-t", "--thickness-quantile-min", type=float, help="quantile of minimum thickness", default=None
     )
     parser.add_argument("--show-thickness", help="show thickness", default=False, action="store_true")
+    parser.add_argument("--randomize", help="randomize output", default=False, action="store_true")
     args = parser.parse_args()
     if args.characters is not None:
         codepoints = str_to_codepoints(args.characters)
@@ -65,8 +66,20 @@ def main():
             print(f"{chr(codepoint)} (U+{codepoint:04X}) {thickness}")
         return
 
+    if args.randomize:
+        import random
+
+        randomizer = random.Random()
+    else:
+        randomizer = None
+
     data = load_data_for_gan(
-        codepoints, args.font, args.size, font_index=args.font_index, thickness_quantiles=thickness_quantiles,
+        codepoints,
+        args.font,
+        args.size,
+        font_index=args.font_index,
+        thickness_quantiles=thickness_quantiles,
+        randomizer=randomizer,
     )
     for i in range(data.shape[0]):
         print(_bitmap_to_asciiart(data[i, :, :, 0]))

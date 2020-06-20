@@ -1,5 +1,6 @@
 """Build data sets from font files with FreeType."""
 
+import random
 from typing import Dict, List, Optional, Tuple
 
 import freetype
@@ -166,12 +167,17 @@ def _check_fonts_len(bitmaps_dict: Dict[int, List[np.ndarray]]) -> int:
     return fonts_len
 
 
-def bitmaps_to_data_for_gan(glyph_bitmaps_dict: Dict[int, List[np.ndarray]], size: int) -> np.ndarray:
+def bitmaps_to_data_for_gan(
+    glyph_bitmaps_dict: Dict[int, List[np.ndarray]], size: int, *, randomizer: Optional[random.Random] = None
+) -> np.ndarray:
     if _check_fonts_len(glyph_bitmaps_dict) != 1:
         raise ValueError("you must use a single font")
     glyph_bitmap_dict = {k: v[0] for k, v in glyph_bitmaps_dict.items()}
     data = np.zeros((len(glyph_bitmap_dict), size, size, 1), dtype=np.uint8)
-    for char_index, glyph_bitmap in enumerate(glyph_bitmap_dict.values()):
+    values = list(glyph_bitmap_dict.values())
+    if randomizer is not None:
+        randomizer.shuffle(values)
+    for char_index, glyph_bitmap in enumerate(values):
         _copy_2d(glyph_bitmap, data[char_index, :, :, 0])
     return data
 
@@ -184,6 +190,7 @@ def load_data_for_gan(
     font_index=0,
     thickness_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
     thickness_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     glyph_bitmaps_dict = load_bitmaps(
         codepoints,
@@ -191,13 +198,18 @@ def load_data_for_gan(
         thickness_range=thickness_range,
         thickness_quantiles=thickness_quantiles,
     )
-    return bitmaps_to_data_for_gan(glyph_bitmaps_dict, size)
+    return bitmaps_to_data_for_gan(glyph_bitmaps_dict, size, randomizer=randomizer)
 
 
-def bitmaps_to_data_for_pix2pix(glyph_bitmaps_dict: Dict[int, List[np.ndarray]], size: int) -> np.ndarray:
+def bitmaps_to_data_for_pix2pix(
+    glyph_bitmaps_dict: Dict[int, List[np.ndarray]], size: int, *, randomizer: Optional[random.Random] = None
+) -> np.ndarray:
     fonts_len = _check_fonts_len(glyph_bitmaps_dict)
     data = np.zeros((fonts_len, len(glyph_bitmaps_dict), size, size, 1), dtype=np.uint8)
-    for char_index, glyph_bitmaps in enumerate(glyph_bitmaps_dict.values()):
+    values = list(glyph_bitmaps_dict.values())
+    if randomizer is not None:
+        randomizer.shuffle(values)
+    for char_index, glyph_bitmaps in enumerate(values):
         for font_index, glyph_bitmap in enumerate(glyph_bitmaps):
             _copy_2d(glyph_bitmap, data[font_index, char_index, :, :, 0])
     return data
@@ -210,6 +222,7 @@ def load_data_for_pix2pix(
     *,
     thickness_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
     thickness_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     glyph_bitmaps_dict = load_bitmaps(
         codepoints,
@@ -217,4 +230,4 @@ def load_data_for_pix2pix(
         thickness_range=thickness_range,
         thickness_quantiles=thickness_quantiles,
     )
-    return bitmaps_to_data_for_pix2pix(glyph_bitmaps_dict, size)
+    return bitmaps_to_data_for_pix2pix(glyph_bitmaps_dict, size, randomizer=randomizer)
