@@ -90,7 +90,7 @@ def combine_images(generated_images):
 
 
 def load_image_data(dir, config):
-    path = os.path.join(dir, "dataset.npy")
+    path = os.path.join(dir, "data_set.npy")
     if os.path.exists(path):
         return np.load(path)
     else:
