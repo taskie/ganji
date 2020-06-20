@@ -126,6 +126,9 @@ def train(dir):
 
     x_train = load_image_data(dir, config)
     x_train = (x_train.astype(np.float32) - 127.5) / 127.5
+    batch_count = int(x_train.shape[0] / batch_size)
+    print("Number of batches", batch_count)
+
     d = discriminator_model(n)
     g = generator_model(n)
     d_on_g = generator_containing_discriminator(g, d)
@@ -136,11 +139,14 @@ def train(dir):
     d.compile(loss="binary_crossentropy", optimizer="ADAM")
     if os.path.exists(os.path.join(dir, "models", "discriminator.index")):
         d.load_weights(os.path.join(dir, "models", "discriminator"))
+
     # train
     for epoch in range(epoch_start, epoch_end):
         print("Epoch is", epoch)
-        batch_count = int(x_train.shape[0] / batch_size)
-        print("Number of batches", batch_count)
+
+        state.epoch = epoch
+        state.update_time = datetime.now().timestamp()
+
         g_loss = None
         d_loss = None
         for index in range(batch_count):
@@ -159,30 +165,26 @@ def train(dir):
             g_loss = d_on_g.train_on_batch(noise, np.array([1] * batch_size, dtype=np.bool))
             d.trainable = True
             print(f"batch: {index:d}, g_loss: {g_loss:f}")
-            first = epoch == 0 and index == 0
-            last = index == batch_count - 1
-            if first or last:
+            if index == batch_count - 1:
                 image = combine_images(generated_images)
                 image = -image * 127.5 + 127.5
-                e1 = 0 if first else epoch + 1
-                image_path = os.path.join(dir, "training", f"{e1:06d}.png")
+                image_path = os.path.join(dir, "training", f"{epoch:06d}.png")
                 Image.fromarray(image.astype(np.uint8)).save(image_path)
 
-        state.epoch = epoch + 1
-        state.update_time = datetime.now().timestamp()
-
         with h5py.File(log_path, "a") as log_file:
-            log_file["epoch"][0] = state.epoch
-            log_file["g_loss"][state.epoch] = g_loss
-            log_file["d_loss"][state.epoch] = d_loss
-        if epoch % 10 == 9 or epoch == epoch_end - 1:
+            log_file["epoch"][0] = epoch + 1
+            log_file["g_loss"][epoch] = g_loss
+            log_file["d_loss"][epoch] = d_loss
+
+        if epoch % 100 == 0 or epoch == epoch_end - 1:
+            g.save_weights(os.path.join(dir, "models", f"generator_{epoch:06d}"), True)
+            d.save_weights(os.path.join(dir, "models", f"discriminator_{epoch:06d}"), True)
+
+        if epoch % 10 == 0 or epoch == epoch_end - 1:
             g.save_weights(os.path.join(dir, "models", "generator"), True)
             d.save_weights(os.path.join(dir, "models", "discriminator"), True)
+            state.epoch = epoch + 1
             ganji.project.dump_state(dir, state)
-        if epoch % 100 == 99 or epoch == epoch_end - 1:
-            e1 = epoch + 1
-            g.save_weights(os.path.join(dir, "models", f"generator_{e1:06d}"), True)
-            d.save_weights(os.path.join(dir, "models", f"discriminator_{e1:06d}"), True)
 
 
 def generate(dir, *, epoch=None, nice=False):
