@@ -75,11 +75,13 @@ def main():
         import ganji.dnn.dcgan  # deferred
 
         dir = os.getcwd() if args.directory is None else args.directory
-        ganji.dnn.dcgan.generate(dir, epoch=args.epoch, nice=args.nice)
+        ganji.dnn.dcgan.generate(dir, rows=args.rows, columns=args.columns, epoch=args.epoch, seed=args.seed)
 
     generate_parser = subparsers.add_parser("generate", help="generate output")
+    generate_parser.add_argument("-c", "--columns", type=int, help="the number of rows of an output image")
     generate_parser.add_argument("-e", "--epoch", type=int, help="specify epoch")
-    generate_parser.add_argument("-n", "--nice", help="generate nicer output", default=False, action="store_true")
+    generate_parser.add_argument("-r", "--rows", type=int, help="the number of rows of an output image")
+    generate_parser.add_argument("-s", "--seed", type=int, help="seed for PRNG to generate an output image")
     generate_parser.set_defaults(handler=command_generate)
 
     def command_log(args):

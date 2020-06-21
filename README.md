@@ -39,7 +39,7 @@ poetry run ganji train
 ### Generate
 
 ```bat
-poetry run ganji generate --nice
+poetry run ganji generate
 ```
 
 ## Tested Environments
@@ -52,8 +52,8 @@ poetry run ganji generate --nice
 
 ## References
 
+* [eriklindernoren/Keras-GAN: Keras implementations of Generative Adversarial Networks.](https://github.com/eriklindernoren/Keras-GAN)
 * [\[1511.06434\] Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/abs/1511.06434)
 * [jacobgil/keras-dcgan: Keras implementation of Deep Convolutional Generative Adversarial Networks](https://github.com/jacobgil/keras-dcgan)
-* [eriklindernoren/Keras-GAN: Keras implementations of Generative Adversarial Networks.](https://github.com/eriklindernoren/Keras-GAN)
 * [はじめてのGAN](https://elix-tech.github.io/ja/2017/02/06/gan.html)
 * [Keras 2 で”はじめてのGAN” - Qiita](https://qiita.com/IntenF/items/94da17a8931e1f14b6e3)
