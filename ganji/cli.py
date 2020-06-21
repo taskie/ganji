@@ -2,12 +2,32 @@
 
 import argparse
 import os
+from typing import Optional
 
 import ganji.project
 
 
+def _select_implementation(mode: Optional[str]):
+    if mode is None:
+        import ganji.dnn.dcgan
+
+        return ganji.dnn.dcgan
+    mode = mode.lower().replace("-", "_")
+    if mode == "dcgan":
+        import ganji.dnn.dcgan
+
+        return ganji.dnn.dcgan
+    elif mode == "wgan":
+        import ganji.dnn.wgan
+
+        return ganji.dnn.wgan
+    else:
+        raise ValueError(f"invalid type: {mode}")
+
+
 def _args_to_config(args) -> ganji.project.Config:
     return ganji.project.Config(
+        mode=args.mode,
         batch_size=args.batch_size,
         codepoint_set=args.codepoint_set,
         epoch_end=args.epoch_end,
@@ -25,9 +45,10 @@ def add_init_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-c", "--codepoint-set", help="codepoint set (kanji|jouyou-kanji|hiragana) [default: kanji]", default="kanji",
     )
-    parser.add_argument("-E", "--epoch-end", type=int, help="epoch end", default=10000)
+    parser.add_argument("-E", "--epoch-end", type=int, help="epoch end", default=100000)
     parser.add_argument("-F", "--font", help="font file", required=True)
     parser.add_argument("-I", "--font-index", type=int, help="font index [default: 0]", default=0)
+    parser.add_argument("-m", "--mode", help="project type (dcgan|wgan)", choices=["dcgan", "wgan"])
     parser.add_argument("-N", "--unit", type=int, help="(size / 4) [default: 10]", default=10)
     parser.add_argument(
         "-T", "--thickness-quantile-max", type=float, help="quantile of maximum thickness", default=None
@@ -63,19 +84,19 @@ def main():
     init_parser.set_defaults(handler=command_init)
 
     def command_train(args):
-        import ganji.dnn.dcgan  # deferred
-
         dir = os.getcwd() if args.directory is None else args.directory
-        ganji.dnn.dcgan.train(dir)
+        config, _state = ganji.project.load_metadata(dir)
+        _select_implementation(config.mode).train(dir)
 
     train_parser = subparsers.add_parser("train", help="train generator and discriminator")
     train_parser.set_defaults(handler=command_train)
 
     def command_generate(args):
-        import ganji.dnn.dcgan  # deferred
-
         dir = os.getcwd() if args.directory is None else args.directory
-        ganji.dnn.dcgan.generate(dir, rows=args.rows, columns=args.columns, epoch=args.epoch, seed=args.seed)
+        config, _state = ganji.project.load_metadata(dir)
+        _select_implementation(config.mode).generate(
+            dir, rows=args.rows, columns=args.columns, epoch=args.epoch, seed=args.seed
+        )
 
     generate_parser = subparsers.add_parser("generate", help="generate output")
     generate_parser.add_argument("-c", "--columns", type=int, help="the number of rows of an output image")
@@ -85,10 +106,9 @@ def main():
     generate_parser.set_defaults(handler=command_generate)
 
     def command_log(args):
-        import ganji.dnn.dcgan  # deferred
-
         dir = os.getcwd() if args.directory is None else args.directory
-        ganji.dnn.dcgan.log(dir)
+        config, _state = ganji.project.load_metadata(dir)
+        _select_implementation(config.mode).log(dir)
 
     log_parser = subparsers.add_parser("log", help="show logs")
     log_parser.set_defaults(handler=command_log)

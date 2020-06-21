@@ -11,6 +11,7 @@ from serde import deserialize, serialize
 @serialize
 @dataclass
 class Config:
+    mode: Optional[str]
     batch_size: int
     codepoint_set: str
     epoch_end: int
