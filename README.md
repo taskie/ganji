@@ -2,6 +2,8 @@
 
 This kanji does not exist.
 
+![ipaexm (epoch=20000)](examples/dcgan/ipaexm/training/020000.png)
+
 ## Installation
 
 This project uses [Poetry](https://python-poetry.org/).
@@ -78,15 +80,15 @@ poetry run ganji log
 * CPU: AMD Ryzen 7 1700 Eight-Core Processor
 * GPU: NVIDIA GeForce GTX 1060 6GB
 * RAM: SanMax Technologies DDR4-2400 16GB (2x8GB)
-* Windows 10 Home
-    * Python 3.7.7
-    * CUDA 10.1.243
-    * cuDNN 7.6.5
 * Arch Linux ([`linux`](https://www.archlinux.org/packages/core/x86_64/linux/) 5.7.4.arch1-1)
     * Python 3.8.3
     * CUDA 10.2.89
     * cuDNN 7.6.5
     * [`python-tensorflow-opt-cuda`](https://www.archlinux.org/packages/community/x86_64/python-tensorflow-opt-cuda/) 2.2.0-1
+* Windows 10 Home
+    * Python 3.7.7
+    * CUDA 10.1.243
+    * cuDNN 7.6.5
 
 ## References
 
