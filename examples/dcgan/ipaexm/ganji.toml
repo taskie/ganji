@@ -1,0 +1,9 @@
+batch_size = 1024
+codepoint_set = "kanji"
+epoch_end = 100000
+font = "/usr/share/fonts/OTF/ipaexm.ttf"
+font_index = 0
+unit = 10
+thickness_quantile_min = 0.025
+thickness_quantile_max = 0.975
+data_set_random_seed = 0
