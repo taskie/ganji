@@ -1,4 +1,4 @@
-"""Build data sets from font files and codepoint sets with FreeType."""
+"""Build datasets from font files and codepoint sets with FreeType."""
 
 import ganji.datasets.cli
 

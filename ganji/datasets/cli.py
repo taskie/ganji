@@ -30,7 +30,7 @@ def _bitmap_to_asciiart(bitmap: np.ndarray) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build data sets from font files with FreeType.")
+    parser = argparse.ArgumentParser(description="Build datasets from font files with FreeType.")
     parser.add_argument(
         "-c",
         "--codepoint-set",

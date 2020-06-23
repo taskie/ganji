@@ -1,4 +1,4 @@
-"""Build data sets from font files with FreeType."""
+"""Build datasets from font files with FreeType."""
 
 import random
 from typing import Dict, List, Optional, Tuple
