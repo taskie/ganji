@@ -1,8 +1,10 @@
+![ipaexm (epoch=50000)](examples/dcgan/ipaexm/training/050000.png)
+
+---
+
 # GANJI
 
 This kanji does not exist.
-
-![ipaexm (epoch=20000)](examples/dcgan/ipaexm/training/020000.png)
 
 ## Installation
 
@@ -19,7 +21,7 @@ poetry install
 poetry install -E tensorflow
 ```
 
-### Linux (using system Tensorflow)
+### Linux (using system TensorFlow)
 
 ```bash
 git clone https://github.com/taskie/ganji.git
@@ -75,6 +77,40 @@ poetry run ganji generate
 poetry run ganji log
 ```
 
+## Examples
+
+* [examples/dcgan/ipaexm](examples/dcgan/ipaexm)
+
+## Usage (detail)
+
+### Render glyphs
+
+```sh
+FONT=/usr/share/fonts/OTF/ipaexm.ttf
+INDEX=0
+poetry run python -m ganji.datasets -F "$FONT" -I "$INDEX" -c hiragana
+```
+
+### Show thickness of glyphs
+
+```sh
+poetry run python -m ganji.datasets -F "$FONT" -I "$INDEX" -c joyo-kanji -t 0.995 --show-thickness
+```
+
+```txt
+蹴 (U+8E74) 77.5576171875
+縄 (U+7E04) 77.6787109375
+嚇 (U+5687) 77.8447265625
+醸 (U+91B8) 79.09765625
+魔 (U+9B54) 79.2236328125
+鬱 (U+9B31) 79.3857421875
+酬 (U+916C) 80.564453125
+欄 (U+6B04) 80.720703125
+繊 (U+7E4A) 81.025390625
+臓 (U+81D3) 82.5966796875
+醜 (U+919C) 83.662109375
+```
+
 ## Tested Environments
 
 * CPU: AMD Ryzen 7 1700 Eight-Core Processor
@@ -89,6 +125,7 @@ poetry run ganji log
     * Python 3.7.7
     * CUDA 10.1.243
     * cuDNN 7.6.5
+* Python Libraries: see [pyproject.toml](pyproject.toml) or [poetry.lock](poetry.lock)
 
 ## References
 
