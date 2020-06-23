@@ -193,10 +193,7 @@ def load_data_for_gan(
     randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     glyph_bitmaps_dict = load_bitmaps(
-        codepoints,
-        [(font_path, font_index, size)],
-        density_range=density_range,
-        density_quantiles=density_quantiles,
+        codepoints, [(font_path, font_index, size)], density_range=density_range, density_quantiles=density_quantiles,
     )
     return bitmaps_to_data_for_gan(glyph_bitmaps_dict, size, randomizer=randomizer)
 

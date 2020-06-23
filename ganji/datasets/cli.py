@@ -37,12 +37,8 @@ def main():
         help="codepoint set (kanji|joyo-kanji|hiragana|ascii) [default: kanji]",
         default="kanji",
     )
-    parser.add_argument(
-        "-D", "--density-quantile-max", type=float, help="quantile of maximum density", default=None
-    )
-    parser.add_argument(
-        "-d", "--density-quantile-min", type=float, help="quantile of minimum density", default=None
-    )
+    parser.add_argument("-D", "--density-quantile-max", type=float, help="quantile of maximum density", default=None)
+    parser.add_argument("-d", "--density-quantile-min", type=float, help="quantile of minimum density", default=None)
     parser.add_argument("-F", "--font", help="font file", required=True)
     parser.add_argument("-I", "--font-index", type=int, help="font index [default: 0]", default=0)
     parser.add_argument("-S", "--size", type=int, help="size [default: 32]", default=32)

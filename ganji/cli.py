@@ -45,12 +45,8 @@ def add_init_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-c", "--codepoint-set", help="codepoint set (kanji|joyo-kanji|hiragana) [default: kanji]", default="kanji",
     )
-    parser.add_argument(
-        "-D", "--density-quantile-max", type=float, help="quantile of maximum density", default=None
-    )
-    parser.add_argument(
-        "-d", "--density-quantile-min", type=float, help="quantile of minimum density", default=None
-    )
+    parser.add_argument("-D", "--density-quantile-max", type=float, help="quantile of maximum density", default=None)
+    parser.add_argument("-d", "--density-quantile-min", type=float, help="quantile of minimum density", default=None)
     parser.add_argument("-E", "--epoch-end", type=int, help="epoch end", default=100000)
     parser.add_argument("-F", "--font", help="font file", required=True)
     parser.add_argument("-I", "--font-index", type=int, help="font index [default: 0]", default=0)
