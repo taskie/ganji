@@ -9,18 +9,18 @@ import ganji.project
 
 def _select_implementation(mode: Optional[str]):
     if mode is None:
-        import ganji.dnn.dcgan
+        import ganji.nn.dcgan
 
-        return ganji.dnn.dcgan
+        return ganji.nn.dcgan
     mode = mode.lower().replace("-", "_")
     if mode == "dcgan":
-        import ganji.dnn.dcgan
+        import ganji.nn.dcgan
 
-        return ganji.dnn.dcgan
+        return ganji.nn.dcgan
     elif mode == "wgan":
-        import ganji.dnn.wgan
+        import ganji.nn.wgan
 
-        return ganji.dnn.wgan
+        return ganji.nn.wgan
     else:
         raise ValueError(f"invalid type: {mode}")
 
