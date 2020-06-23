@@ -43,7 +43,7 @@ def _args_to_config(args) -> ganji.project.Config:
 def add_init_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-B", "--batch-size", type=int, help="batch_size", default=1024)
     parser.add_argument(
-        "-c", "--codepoint-set", help="codepoint set (kanji|jouyou-kanji|hiragana) [default: kanji]", default="kanji",
+        "-c", "--codepoint-set", help="codepoint set (kanji|joyo-kanji|hiragana) [default: kanji]", default="kanji",
     )
     parser.add_argument(
         "-D", "--density-quantile-max", type=float, help="quantile of maximum density", default=None
