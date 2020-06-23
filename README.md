@@ -83,32 +83,52 @@ poetry run ganji log
 
 ## Usage (detail)
 
-### Render glyphs
-
-```sh
-FONT=/usr/share/fonts/OTF/ipaexm.ttf
-INDEX=0
-poetry run python -m ganji.datasets -F "$FONT" -I "$INDEX" -c hiragana
-```
-
 ### Show density of glyphs
 
 ```sh
-poetry run python -m ganji.datasets -F "$FONT" -I "$INDEX" -c joyo-kanji -d 0.995 --show-density
+poetry run python -m ganji.datasets \
+    -F /usr/share/fonts/OTF/ipaexm.ttf -I 0 -S 40 \
+    -c joyo-kanji -d 0.995 --show-density
 ```
 
 ```txt
-蹴 (U+8E74) 77.5576171875
-縄 (U+7E04) 77.6787109375
-嚇 (U+5687) 77.8447265625
-醸 (U+91B8) 79.09765625
-魔 (U+9B54) 79.2236328125
-鬱 (U+9B31) 79.3857421875
-酬 (U+916C) 80.564453125
-欄 (U+6B04) 80.720703125
-繊 (U+7E4A) 81.025390625
-臓 (U+81D3) 82.5966796875
-醜 (U+919C) 83.662109375
+嚇 (U+5687) 77.52
+翻 (U+7FFB) 78.29
+鋼 (U+92FC) 78.97625
+繊 (U+7E4A) 79.169375
+酬 (U+916C) 79.875625
+綱 (U+7DB1) 79.9275
+醜 (U+919C) 80.4075
+鬱 (U+9B31) 80.62625
+醸 (U+91B8) 81.4575
+欄 (U+6B04) 81.908125
+臓 (U+81D3) 83.02
+```
+
+### Render glyphs
+
+```sh
+poetry run python -m ganji.datasets \
+    -F /usr/share/fonts/OTF/ipaexm.ttf -I 0 -S 16 \
+    -c hiragana -d 1
+```
+
+```txt
+                        ++**++
+  --                  --++--++
+  ++++    ----        --++--++
+  --**--  ++********++--++**++
+  --**            **
+  ++++            **
+  ++--  --++------**++****--
+  ++--    --********++----
+  ++              **
+--++--++          **--
+--++++--      ----**--
+  **++    ++**********++++
+  ++++  --**------**--++**++
+  ++++    ++******++    --
+
 ```
 
 ## Tested Environments
