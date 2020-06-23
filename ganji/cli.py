@@ -34,8 +34,8 @@ def _args_to_config(args) -> ganji.project.Config:
         font=args.font,
         font_index=args.font_index,
         unit=args.unit,
-        thickness_quantile_min=args.thickness_quantile_min,
-        thickness_quantile_max=args.thickness_quantile_max,
+        density_quantile_min=args.density_quantile_min,
+        density_quantile_max=args.density_quantile_max,
         dataset_random_seed=args.dataset_random_seed,
     )
 
@@ -45,17 +45,17 @@ def add_init_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-c", "--codepoint-set", help="codepoint set (kanji|jouyou-kanji|hiragana) [default: kanji]", default="kanji",
     )
+    parser.add_argument(
+        "-D", "--density-quantile-max", type=float, help="quantile of maximum density", default=None
+    )
+    parser.add_argument(
+        "-d", "--density-quantile-min", type=float, help="quantile of minimum density", default=None
+    )
     parser.add_argument("-E", "--epoch-end", type=int, help="epoch end", default=100000)
     parser.add_argument("-F", "--font", help="font file", required=True)
     parser.add_argument("-I", "--font-index", type=int, help="font index [default: 0]", default=0)
     parser.add_argument("-m", "--mode", help="project type (dcgan|wgan)", choices=["dcgan", "wgan"])
     parser.add_argument("-N", "--unit", type=int, help="(size / 4) [default: 10]", default=10)
-    parser.add_argument(
-        "-T", "--thickness-quantile-max", type=float, help="quantile of maximum thickness", default=None
-    )
-    parser.add_argument(
-        "-t", "--thickness-quantile-min", type=float, help="quantile of minimum thickness", default=None
-    )
     parser.add_argument(
         "--dataset-random-seed", type=int, help="seed for PRNG to generate a dataset [default: 0]", default=0
     )

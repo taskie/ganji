@@ -50,10 +50,10 @@ REM (freetype.dll may be needed under %PATH%. see https://pypi.org/project/freet
 ### Initialize
 
 ```sh
-poetry run ganji new -F /usr/share/fonts/OTF/ipaexm.ttf -t 0.025 -T 0.975 ipaexm
+poetry run ganji new -F /usr/share/fonts/OTF/ipaexm.ttf -d 0.025 -D 0.975 ipaexm
 # or
 cd ipaexm
-poetry run ganji init -F /usr/share/fonts/OTF/ipaexm.ttf -t 0.025 -T 0.975
+poetry run ganji init -F /usr/share/fonts/OTF/ipaexm.ttf -d 0.025 -D 0.975
 ```
 
 ### Train
@@ -91,10 +91,10 @@ INDEX=0
 poetry run python -m ganji.datasets -F "$FONT" -I "$INDEX" -c hiragana
 ```
 
-### Show thickness of glyphs
+### Show density of glyphs
 
 ```sh
-poetry run python -m ganji.datasets -F "$FONT" -I "$INDEX" -c joyo-kanji -t 0.995 --show-thickness
+poetry run python -m ganji.datasets -F "$FONT" -I "$INDEX" -c joyo-kanji -d 0.995 --show-density
 ```
 
 ```txt

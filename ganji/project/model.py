@@ -18,8 +18,8 @@ class Config:
     font: str
     font_index: Optional[int]
     unit: int
-    thickness_quantile_min: Optional[float]
-    thickness_quantile_max: Optional[float]
+    density_quantile_min: Optional[float]
+    density_quantile_max: Optional[float]
     dataset_random_seed: Optional[int]
 
 

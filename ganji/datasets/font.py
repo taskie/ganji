@@ -78,16 +78,16 @@ def _normalize_range(
     return (max(begin, begin_min), min(end, end_max))
 
 
-def _make_thickness_dict(bitmaps_dict: Dict[int, List[np.ndarray]], sizes: List[int]) -> Dict[int, float]:
+def _make_density_dict(bitmaps_dict: Dict[int, List[np.ndarray]], sizes: List[int]) -> Dict[int, float]:
     # bitmaps_dict[codepoint][face_index]: shape=(size, size)
-    thickness_dict: Dict[int, float] = {}
+    density_dict: Dict[int, float] = {}
     for codepoint, bitmaps in bitmaps_dict.items():
         for i, bitmap in enumerate(bitmaps):
-            if codepoint not in thickness_dict:
-                thickness_dict[codepoint] = 0.0
-            thickness_dict[codepoint] += np.sum(bitmap) / (sizes[i] ** 2)
-    thickness_dict = {k: v / len(sizes) for k, v in thickness_dict.items()}
-    return thickness_dict
+            if codepoint not in density_dict:
+                density_dict[codepoint] = 0.0
+            density_dict[codepoint] += np.sum(bitmap) / (sizes[i] ** 2)
+    density_dict = {k: v / len(sizes) for k, v in density_dict.items()}
+    return density_dict
 
 
 def _calc_range_from_quantiles(
@@ -103,23 +103,23 @@ def _filter_bitmaps_dict(
     bitmaps_dict: Dict[int, List[np.ndarray]],
     sizes: List[int],
     *,
-    thickness_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
-    thickness_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
 ) -> Dict[int, List[np.ndarray]]:
     # bitmaps_dict[codepoint][face_index]: shape=(size, size)
     d = bitmaps_dict
-    if thickness_quantiles is not None:
-        if thickness_quantiles[0] is None and thickness_quantiles[1] is None:
-            thickness_quantiles = None
-    if thickness_range is not None or thickness_quantiles is not None:
-        thickness_dict = _make_thickness_dict(bitmaps_dict, sizes)
-        if thickness_quantiles is not None and thickness_range is None:
-            thickness_range = _calc_range_from_quantiles(list(thickness_dict.values()), thickness_quantiles)
-        if thickness_range is not None:
-            thickness_min, thickness_max = _normalize_range(thickness_range, 0, float("+inf"))
+    if density_quantiles is not None:
+        if density_quantiles[0] is None and density_quantiles[1] is None:
+            density_quantiles = None
+    if density_range is not None or density_quantiles is not None:
+        density_dict = _make_density_dict(bitmaps_dict, sizes)
+        if density_quantiles is not None and density_range is None:
+            density_range = _calc_range_from_quantiles(list(density_dict.values()), density_quantiles)
+        if density_range is not None:
+            density_min, density_max = _normalize_range(density_range, 0, float("+inf"))
             d_new = {}
             for (codepoint, glyph_bitmaps) in d.items():
-                if thickness_min <= thickness_dict[codepoint] <= thickness_max:
+                if density_min <= density_dict[codepoint] <= density_max:
                     d_new[codepoint] = glyph_bitmaps
             d = d_new
     return d
@@ -129,8 +129,8 @@ def load_bitmaps(
     codepoints: List[int],
     fonts: List[Tuple[str, int, int]],
     *,
-    thickness_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
-    thickness_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
 ) -> Dict[int, List[np.ndarray]]:
     # fonts[i]: (path, font_index, size)
     glyph_bitmaps_dict: Dict[int, List[np.ndarray]] = {}
@@ -149,8 +149,8 @@ def load_bitmaps(
     glyph_bitmaps_dict = _filter_bitmaps_dict(
         glyph_bitmaps_dict,
         sizes=[f[2] for f in fonts],
-        thickness_range=thickness_range,
-        thickness_quantiles=thickness_quantiles,
+        density_range=density_range,
+        density_quantiles=density_quantiles,
     )
     return glyph_bitmaps_dict
 
@@ -188,15 +188,15 @@ def load_data_for_gan(
     size: int,
     *,
     font_index=0,
-    thickness_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
-    thickness_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
     randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     glyph_bitmaps_dict = load_bitmaps(
         codepoints,
         [(font_path, font_index, size)],
-        thickness_range=thickness_range,
-        thickness_quantiles=thickness_quantiles,
+        density_range=density_range,
+        density_quantiles=density_quantiles,
     )
     return bitmaps_to_data_for_gan(glyph_bitmaps_dict, size, randomizer=randomizer)
 
@@ -220,14 +220,14 @@ def load_data_for_pix2pix(
     fonts: List[Tuple[str, int]],
     size: int,
     *,
-    thickness_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
-    thickness_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
+    density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
     randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     glyph_bitmaps_dict = load_bitmaps(
         codepoints,
         [(path, font_index, size) for (path, font_index) in fonts],
-        thickness_range=thickness_range,
-        thickness_quantiles=thickness_quantiles,
+        density_range=density_range,
+        density_quantiles=density_quantiles,
     )
     return bitmaps_to_data_for_pix2pix(glyph_bitmaps_dict, size, randomizer=randomizer)
