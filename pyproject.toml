@@ -28,7 +28,6 @@ ganji = "ganji.cli:main"
 torch = ["torch", "torchvision"]
 
 [tool.black]
-line-length = 120
 target-version = ["py39"]
 
 [build-system]

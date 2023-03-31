@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import subprocess
 
 subprocess.run(["coverage", "run", "-p", "-m", "pytest", "tests"])

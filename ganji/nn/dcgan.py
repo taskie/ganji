@@ -228,16 +228,31 @@ class DCGan:
 
         mnist_mode = False
         if mnist_mode:
-            self.dataset = datasets.MNIST("mnist/", train=True, download=True, transform=self.transform)
-            self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
+            self.dataset = datasets.MNIST(
+                "mnist/", train=True, download=True, transform=self.transform
+            )
+            self.dataloader = DataLoader(
+                self.dataset, batch_size=self.batch_size, shuffle=True
+            )
         else:
             self.dataset = GanjiDataset(
-                "ganji/", train=True, size=self.image_size, config=self.config, download=True, transform=self.transform
+                "ganji/",
+                train=True,
+                size=self.image_size,
+                config=self.config,
+                download=True,
+                transform=self.transform,
             )
-            self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
+            self.dataloader = DataLoader(
+                self.dataset, batch_size=self.batch_size, shuffle=True
+            )
 
-        self.netG = Generator(nc=self.nc, nz=self.nz, ngf=self.ngf, original=self.original).to(self.device)
-        self.netD = Discriminator(nc=self.nc, ndf=self.ndf, original=self.original).to(self.device)
+        self.netG = Generator(
+            nc=self.nc, nz=self.nz, ngf=self.ngf, original=self.original
+        ).to(self.device)
+        self.netD = Discriminator(nc=self.nc, ndf=self.ndf, original=self.original).to(
+            self.device
+        )
 
         if (self.device.type == "cuda") and (self.ngpu > 1):
             self.netG = nn.DataParallel(self.netG, list(range(ngpu)))
@@ -250,8 +265,12 @@ class DCGan:
         self.real_label = 1.0
         self.fake_label = 0.0
 
-        self.optimizerD = optim.Adam(self.netG.parameters(), lr=self.lr, betas=(self.beta1, 0.999))
-        self.optimizerG = optim.Adam(self.netD.parameters(), lr=self.lr, betas=(self.beta1, 0.999))
+        self.optimizerD = optim.Adam(
+            self.netG.parameters(), lr=self.lr, betas=(self.beta1, 0.999)
+        )
+        self.optimizerG = optim.Adam(
+            self.netD.parameters(), lr=self.lr, betas=(self.beta1, 0.999)
+        )
 
     def weights_init(self, m):
         classname = m.__class__.__name__
@@ -322,10 +341,18 @@ class DCGan:
         if not os.path.exists(self.log_path):
             with h5py.File(self.log_path, "a") as f:
                 f.create_dataset("epoch", (1,), dtype=np.int32)
-                f.create_dataset("loss_D", (num_epochs + 1,), maxshape=(None,), dtype=np.float32)
-                f.create_dataset("loss_G", (num_epochs + 1), maxshape=(None,), dtype=np.float32)
-                f.create_dataset("D_x", (num_epochs + 1), maxshape=(None,), dtype=np.float32)
-                f.create_dataset("D_G_z", (num_epochs + 1, 2), maxshape=(None, 2), dtype=np.float32)
+                f.create_dataset(
+                    "loss_D", (num_epochs + 1,), maxshape=(None,), dtype=np.float32
+                )
+                f.create_dataset(
+                    "loss_G", (num_epochs + 1), maxshape=(None,), dtype=np.float32
+                )
+                f.create_dataset(
+                    "D_x", (num_epochs + 1), maxshape=(None,), dtype=np.float32
+                )
+                f.create_dataset(
+                    "D_G_z", (num_epochs + 1, 2), maxshape=(None, 2), dtype=np.float32
+                )
 
         for epoch in range(start, num_epochs):
             self._train_one_epoch(num_epochs, epoch)
@@ -346,7 +373,9 @@ class DCGan:
         self.netD.zero_grad()
         real_cpu = data.to(self.device)
         b_size = real_cpu.size(0)
-        label = torch.full((b_size,), self.real_label, dtype=torch.float, device=self.device)
+        label = torch.full(
+            (b_size,), self.real_label, dtype=torch.float, device=self.device
+        )
         output = self.netD(real_cpu).view(-1)
         errD_real = self.criterion(output, label)
         errD_real.backward()
@@ -373,7 +402,17 @@ class DCGan:
 
         eprint(
             "[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f"
-            % (epoch, num_epochs, i, len(self.dataloader), errD.item(), errG.item(), D_x, D_G_z1, D_G_z2)
+            % (
+                epoch,
+                num_epochs,
+                i,
+                len(self.dataloader),
+                errD.item(),
+                errG.item(),
+                D_x,
+                D_G_z1,
+                D_G_z2,
+            )
         )
 
         if i == len(self.dataloader) - 1:
@@ -384,7 +423,9 @@ class DCGan:
                 log_file["D_x"][epoch] = D_x
                 log_file["D_G_z"][epoch] = (D_G_z1, D_G_z2)
 
-    def save_imgs(self, epoch, *, rows=None, columns=None, generate_mode=False, seed=None):
+    def save_imgs(
+        self, epoch, *, rows=None, columns=None, generate_mode=False, seed=None
+    ):
         r = 8 if rows is None else rows
         c = 8 if columns is None else columns
 
@@ -447,4 +488,6 @@ def log(dir):
         print("epoch,loss_G,loss_D,D_x,D_G_z1,D_G_z2")
         for i in range(epoch):
             D_G_z = D_G_z_list[i]
-            print(f"{i},{loss_G_list[i]},{loss_D_list[i]},{D_x_list[i]},{D_G_z[0]},{D_G_z[1]}")
+            print(
+                f"{i},{loss_G_list[i]},{loss_D_list[i]},{D_x_list[i]},{D_G_z[0]},{D_G_z[1]}"
+            )

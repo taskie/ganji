@@ -32,7 +32,9 @@ def _calc_copy_nd(
 
 def _copy_2d(src: np.ndarray, dst: np.ndarray):
     s, d = _calc_copy_nd(src.shape, dst.shape)
-    dst[d[0][0] : d[0][1], d[1][0] : d[1][1]] = src[s[0][0] : s[0][1], s[1][0] : s[1][1]]
+    dst[d[0][0] : d[0][1], d[1][0] : d[1][1]] = src[
+        s[0][0] : s[0][1], s[1][0] : s[1][1]
+    ]
 
 
 def _setup_face(font_path: str, size: int, *, index: int = 0) -> freetype.Face:
@@ -57,7 +59,9 @@ def _make_glyph_bitmap(face: freetype.Face, codepoint: int) -> np.ndarray:
     return glyph_bitmap
 
 
-def _make_glyph_bitmap_dict(face: freetype.Face, codepoints: List[int]) -> Dict[int, np.ndarray]:
+def _make_glyph_bitmap_dict(
+    face: freetype.Face, codepoints: List[int]
+) -> Dict[int, np.ndarray]:
     result = {}
     for codepoint in codepoints:
         try:
@@ -78,7 +82,9 @@ def _normalize_range(
     return (max(begin, begin_min), min(end, end_max))
 
 
-def _make_density_dict(bitmaps_dict: Dict[int, List[np.ndarray]], sizes: List[int]) -> Dict[int, float]:
+def _make_density_dict(
+    bitmaps_dict: Dict[int, List[np.ndarray]], sizes: List[int]
+) -> Dict[int, float]:
     # bitmaps_dict[codepoint][face_index]: shape=(size, size)
     density_dict: Dict[int, float] = {}
     for codepoint, bitmaps in bitmaps_dict.items():
@@ -114,11 +120,13 @@ def _filter_bitmaps_dict(
     if density_range is not None or density_quantiles is not None:
         density_dict = _make_density_dict(bitmaps_dict, sizes)
         if density_quantiles is not None and density_range is None:
-            density_range = _calc_range_from_quantiles(list(density_dict.values()), density_quantiles)
+            density_range = _calc_range_from_quantiles(
+                list(density_dict.values()), density_quantiles
+            )
         if density_range is not None:
             density_min, density_max = _normalize_range(density_range, 0, float("+inf"))
             d_new = {}
-            for (codepoint, glyph_bitmaps) in d.items():
+            for codepoint, glyph_bitmaps in d.items():
                 if density_min <= density_dict[codepoint] <= density_max:
                     d_new[codepoint] = glyph_bitmaps
             d = d_new
@@ -168,7 +176,10 @@ def _check_fonts_len(bitmaps_dict: Dict[int, List[np.ndarray]]) -> int:
 
 
 def bitmaps_to_data_for_gan(
-    glyph_bitmaps_dict: Dict[int, List[np.ndarray]], size: int, *, randomizer: Optional[random.Random] = None
+    glyph_bitmaps_dict: Dict[int, List[np.ndarray]],
+    size: int,
+    *,
+    randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     if _check_fonts_len(glyph_bitmaps_dict) != 1:
         raise ValueError("you must use a single font")
@@ -193,13 +204,19 @@ def load_data_for_gan(
     randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     glyph_bitmaps_dict = load_bitmaps(
-        codepoints, [(font_path, font_index, size)], density_range=density_range, density_quantiles=density_quantiles,
+        codepoints,
+        [(font_path, font_index, size)],
+        density_range=density_range,
+        density_quantiles=density_quantiles,
     )
     return bitmaps_to_data_for_gan(glyph_bitmaps_dict, size, randomizer=randomizer)
 
 
 def bitmaps_to_data_for_pix2pix(
-    glyph_bitmaps_dict: Dict[int, List[np.ndarray]], size: int, *, randomizer: Optional[random.Random] = None
+    glyph_bitmaps_dict: Dict[int, List[np.ndarray]],
+    size: int,
+    *,
+    randomizer: Optional[random.Random] = None,
 ) -> np.ndarray:
     fonts_len = _check_fonts_len(glyph_bitmaps_dict)
     data = np.zeros((fonts_len, len(glyph_bitmaps_dict), size, size, 1), dtype=np.uint8)

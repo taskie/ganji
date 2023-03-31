@@ -43,17 +43,41 @@ def _args_to_config(args) -> ganji.project.Config:
 def add_init_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-B", "--batch-size", type=int, help="batch_size", default=1024)
     parser.add_argument(
-        "-c", "--codepoint-set", help="codepoint set (kanji|joyo-kanji|hiragana) [default: kanji]", default="kanji",
+        "-c",
+        "--codepoint-set",
+        help="codepoint set (kanji|joyo-kanji|hiragana) [default: kanji]",
+        default="kanji",
     )
-    parser.add_argument("-D", "--density-quantile-max", type=float, help="quantile of maximum density", default=None)
-    parser.add_argument("-d", "--density-quantile-min", type=float, help="quantile of minimum density", default=None)
+    parser.add_argument(
+        "-D",
+        "--density-quantile-max",
+        type=float,
+        help="quantile of maximum density",
+        default=None,
+    )
+    parser.add_argument(
+        "-d",
+        "--density-quantile-min",
+        type=float,
+        help="quantile of minimum density",
+        default=None,
+    )
     parser.add_argument("-E", "--epoch-end", type=int, help="epoch end", default=100000)
     parser.add_argument("-F", "--font", help="font file", required=True)
-    parser.add_argument("-I", "--font-index", type=int, help="font index [default: 0]", default=0)
-    parser.add_argument("-m", "--mode", help="project type (dcgan|wgan)", choices=["dcgan", "wgan"])
-    parser.add_argument("-N", "--unit", type=int, help="(size / 4) [default: 10]", default=10)
     parser.add_argument(
-        "--dataset-random-seed", type=int, help="seed for PRNG to generate a dataset [default: 0]", default=0
+        "-I", "--font-index", type=int, help="font index [default: 0]", default=0
+    )
+    parser.add_argument(
+        "-m", "--mode", help="project type (dcgan|wgan)", choices=["dcgan", "wgan"]
+    )
+    parser.add_argument(
+        "-N", "--unit", type=int, help="(size / 4) [default: 10]", default=10
+    )
+    parser.add_argument(
+        "--dataset-random-seed",
+        type=int,
+        help="seed for PRNG to generate a dataset [default: 0]",
+        default=0,
     )
 
 
@@ -84,7 +108,9 @@ def main():
         config, _state = ganji.project.load_metadata(dir)
         _select_implementation(config.mode).train(dir)
 
-    train_parser = subparsers.add_parser("train", help="train generator and discriminator")
+    train_parser = subparsers.add_parser(
+        "train", help="train generator and discriminator"
+    )
     train_parser.set_defaults(handler=command_train)
 
     def command_generate(args):
@@ -95,10 +121,16 @@ def main():
         )
 
     generate_parser = subparsers.add_parser("generate", help="generate output")
-    generate_parser.add_argument("-c", "--columns", type=int, help="the number of rows of an output image")
+    generate_parser.add_argument(
+        "-c", "--columns", type=int, help="the number of rows of an output image"
+    )
     generate_parser.add_argument("-e", "--epoch", type=int, help="specify epoch")
-    generate_parser.add_argument("-r", "--rows", type=int, help="the number of rows of an output image")
-    generate_parser.add_argument("-s", "--seed", type=int, help="seed for PRNG to generate an output image")
+    generate_parser.add_argument(
+        "-r", "--rows", type=int, help="the number of rows of an output image"
+    )
+    generate_parser.add_argument(
+        "-s", "--seed", type=int, help="seed for PRNG to generate an output image"
+    )
     generate_parser.set_defaults(handler=command_generate)
 
     def command_log(args):

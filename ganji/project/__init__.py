@@ -1,4 +1,6 @@
 """Manipulate GANJI project."""
 
-from ganji.project.file import dump_state, init, load_metadata, new  # noqa
-from ganji.project.model import Config, State  # noqa
+from .file import dump_state, init, load_metadata, new
+from .model import Config, State
+
+__all__ = ["dump_state", "init", "load_metadata", "new", "Config", "State"]

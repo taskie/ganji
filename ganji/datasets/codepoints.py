@@ -9,7 +9,9 @@ def str_to_codepoints(s: str) -> List[int]:
 
 def ranges_to_codepoints(codepoint_ranges: List[Tuple[int, int]]) -> List[int]:
     return [
-        codepoint for codepoint_range in codepoint_ranges for codepoint in range(codepoint_range[0], codepoint_range[1])
+        codepoint
+        for codepoint_range in codepoint_ranges
+        for codepoint in range(codepoint_range[0], codepoint_range[1])
     ]
 
 
@@ -76,5 +78,7 @@ CODEPOINTS_MAP = {
 }
 
 
-def find_codepoints(key: str, *, map: Dict[str, List[int]] = CODEPOINTS_MAP) -> List[int]:
+def find_codepoints(
+    key: str, *, map: Dict[str, List[int]] = CODEPOINTS_MAP
+) -> List[int]:
     return CODEPOINTS_MAP[key.replace("-", "_").lower()]
