@@ -7,28 +7,51 @@ authors = ["taskie <t@skie.jp>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 freetype-py = "^2.1.0"
+h5py = "^3.8.0"
+ipykernel = {version = "^6.22.0", optional = true }
+jupyterlab = { version = "^3.6.2", optional = true }
+matplotlib = { version = "^3.7.1", optional = true }
 numpy = "^1.24.2"
+pandas = { version = "^1.5.3", optional = true }
 pillow = "^9.4.0"
 pyserde = "^0.10.4"
+tomli-w = "^1.0.0"
 torch = { version = "^2.0.0", optional = true }
 torchvision = { version = "^0.15.1", optional = true }
 
 [tool.poetry.dev-dependencies]
 black = "^23.1.0"
 coverage = "^7.2.2"
-flake8 = "^6.0.0"
 isort = "^5.12.0"
 mypy = "^1.1.1"
+pyproject-flake8 = "^6.0.0.post1"
 pytest = "^7.2.2"
 
 [tool.poetry.scripts]
 ganji = "ganji.cli:main"
 
 [tool.poetry.extras]
+jupyter = ["jupyter", "ipykernel", "matplotlib", "pandas"]
 torch = ["torch", "torchvision"]
 
 [tool.black]
 target-version = ["py39"]
+
+[tool.coverage.run]
+branch = true
+source = ["ganji", "tests"]
+
+[tool.coverage.paths]
+source = ["ganji"]
+
+[tool.flake8]
+exclude = [".git", ".venv", ".eggs", "build", "dist", "tmp", "examples"]
+max-line-length = 100
+ignore = "E203"
+
+[tool.mypy]
+exclude = [".git", ".venv", ".eggs", "build", "dist", "tmp", "examples"]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["poetry>=1.4"]
