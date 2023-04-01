@@ -6,7 +6,7 @@ import random
 import numpy as np
 
 from ganji.datasets.codepoints import find_codepoints, str_to_codepoints
-from ganji.datasets.font import _make_density_dict, load_bitmaps, load_data_for_gan
+from ganji.datasets.font import _make_density_dict, load_as_images, load_bitmaps
 
 
 def _bitmap_value_to_str(x: int) -> str:
@@ -85,18 +85,13 @@ def main():
             print(f"{chr(codepoint)} (U+{codepoint:04X}) {density}")
         return
 
-    if args.randomize:
-        randomizer = random.Random()
-    else:
-        randomizer = None
+    import PIL
 
-    data = load_data_for_gan(
+    codepoint_to_bitmaps = load_as_images(
+        [(args.font, args.font_index, args.size)],
         codepoints,
-        args.font,
-        args.size,
-        font_index=args.font_index,
         density_quantiles=density_quantiles,
-        randomizer=randomizer,
     )
-    for i in range(data.shape[0]):
-        print(_bitmap_to_asciiart(data[i, :, :, 0]))
+    for bitmaps in codepoint_to_bitmaps.values():
+        for bitmap in bitmaps:
+            print(_bitmap_to_asciiart(bitmap))

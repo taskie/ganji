@@ -47,6 +47,25 @@ def _setup_face(font_path: str, size: int, *, index: int = 0) -> freetype.Face:
     return face
 
 
+def _pad_or_crop_2darray(a: np.ndarray, b_shape: Tuple[int, int]) -> np.ndarray:
+    ah, aw = a.shape
+    bh, bw = b_shape
+    y = (bh - ah) // 2
+    yr = bh - ah - y
+    x = (bw - aw) // 2
+    xr = bw - aw - x
+    y = max(y, 0)
+    yr = max(yr, 0)
+    x = max(x, 0)
+    xr = max(xr, 0)
+    p = np.pad(a, ((y, yr), (x, xr)))
+    i = max((b_shape[0] - p.shape[0] + 1) // 2, 0)
+    j = max((b_shape[1] - p.shape[1] + 1) // 2, 0)
+    p = p[i : i + bh, j : j + bw]
+    assert p.shape == b_shape
+    return p
+
+
 def _make_glyph_bitmap(
     face: freetype.Face,
     codepoint: int,
@@ -67,13 +86,7 @@ def _make_glyph_bitmap(
     glyph_size = (row_count, col_count)
     glyph_bitmap = np.reshape(np.array(bitmap.buffer, dtype=np.uint8), glyph_size)
     if padding and size is not None:
-        row_offset = (size - row_count) // 2
-        col_offset = (size - col_count) // 2
-        pad_width = (
-            (row_offset, size - row_count - row_offset),
-            (col_offset, size - col_count - col_offset),
-        )
-        glyph_bitmap = np.pad(glyph_bitmap, pad_width)
+        glyph_bitmap = _pad_or_crop_2darray(glyph_bitmap, (size, size))
     return glyph_bitmap
 
 
