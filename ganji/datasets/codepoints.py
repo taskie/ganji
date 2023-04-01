@@ -1,6 +1,6 @@
 """Definitions about a codepoint set."""
 
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 
 def str_to_codepoints(s: str) -> List[int]:
@@ -78,7 +78,5 @@ CODEPOINTS_MAP = {
 }
 
 
-def find_codepoints(
-    key: str, *, map: Dict[str, List[int]] = CODEPOINTS_MAP
-) -> List[int]:
+def find_codepoints(key: str) -> List[int]:
     return CODEPOINTS_MAP[key.replace("-", "_").lower()]

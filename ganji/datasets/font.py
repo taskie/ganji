@@ -1,10 +1,14 @@
 """Build datasets from font files with FreeType."""
 
-import random
 from typing import Dict, List, Optional, Tuple
 
 import freetype
 import numpy as np
+
+try:
+    import PIL
+except ModuleNotFoundError:
+    pass
 
 
 def _calc_copy_nd(
@@ -43,7 +47,13 @@ def _setup_face(font_path: str, size: int, *, index: int = 0) -> freetype.Face:
     return face
 
 
-def _make_glyph_bitmap(face: freetype.Face, codepoint: int) -> np.ndarray:
+def _make_glyph_bitmap(
+    face: freetype.Face,
+    codepoint: int,
+    *,
+    size: Optional[int] = None,
+    padding: bool = False,
+) -> np.ndarray:
     char_index = face.get_char_index(codepoint)
     if char_index == 0:
         return None
@@ -56,16 +66,30 @@ def _make_glyph_bitmap(face: freetype.Face, codepoint: int) -> np.ndarray:
     col_count = length // row_count
     glyph_size = (row_count, col_count)
     glyph_bitmap = np.reshape(np.array(bitmap.buffer, dtype=np.uint8), glyph_size)
+    if padding and size is not None:
+        row_offset = (size - row_count) // 2
+        col_offset = (size - col_count) // 2
+        pad_width = (
+            (row_offset, size - row_count - row_offset),
+            (col_offset, size - col_count - col_offset),
+        )
+        glyph_bitmap = np.pad(glyph_bitmap, pad_width)
     return glyph_bitmap
 
 
 def _make_glyph_bitmap_dict(
-    face: freetype.Face, codepoints: List[int]
+    face: freetype.Face,
+    codepoints: List[int],
+    *,
+    size: Optional[int] = None,
+    padding: bool = False,
 ) -> Dict[int, np.ndarray]:
     result = {}
     for codepoint in codepoints:
         try:
-            glyph_bitmap = _make_glyph_bitmap(face, codepoint)
+            glyph_bitmap = _make_glyph_bitmap(
+                face, codepoint, size=size, padding=padding
+            )
             if glyph_bitmap is None:
                 continue
             result[codepoint] = glyph_bitmap
@@ -83,16 +107,24 @@ def _normalize_range(
 
 
 def _make_density_dict(
-    bitmaps_dict: Dict[int, List[np.ndarray]], sizes: List[int]
+    bitmaps_dict: Dict[int, List[np.ndarray]],
+    sizes: List[int],
+    *,
+    density_indices: Optional[List[int]] = None,
 ) -> Dict[int, float]:
     # bitmaps_dict[codepoint][face_index]: shape=(size, size)
+    if density_indices is None:
+        density_indices = range(len(sizes))
+    density_indices = frozenset(density_indices)
     density_dict: Dict[int, float] = {}
     for codepoint, bitmaps in bitmaps_dict.items():
         for i, bitmap in enumerate(bitmaps):
+            if i not in density_indices:
+                continue
             if codepoint not in density_dict:
                 density_dict[codepoint] = 0.0
             density_dict[codepoint] += np.sum(bitmap) / (sizes[i] ** 2)
-    density_dict = {k: v / len(sizes) for k, v in density_dict.items()}
+    density_dict = {k: v / len(density_indices) for k, v in density_dict.items()}
     return density_dict
 
 
@@ -109,6 +141,7 @@ def _filter_bitmaps_dict(
     bitmaps_dict: Dict[int, List[np.ndarray]],
     sizes: List[int],
     *,
+    density_indices: Optional[List[int]] = None,
     density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
     density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
 ) -> Dict[int, List[np.ndarray]]:
@@ -118,7 +151,9 @@ def _filter_bitmaps_dict(
         if density_quantiles[0] is None and density_quantiles[1] is None:
             density_quantiles = None
     if density_range is not None or density_quantiles is not None:
-        density_dict = _make_density_dict(bitmaps_dict, sizes)
+        density_dict = _make_density_dict(
+            bitmaps_dict, sizes, density_indices=density_indices
+        )
         if density_quantiles is not None and density_range is None:
             density_range = _calc_range_from_quantiles(
                 list(density_dict.values()), density_quantiles
@@ -137,14 +172,19 @@ def load_bitmaps(
     codepoints: List[int],
     fonts: List[Tuple[str, int, int]],
     *,
+    density_indices: Optional[List[int]] = None,
+    padding: bool = False,
     density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
     density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
 ) -> Dict[int, List[np.ndarray]]:
     # fonts[i]: (path, font_index, size)
+    # returns:
     glyph_bitmaps_dict: Dict[int, List[np.ndarray]] = {}
     for i, (path, font_index, size) in enumerate(fonts):
         face = _setup_face(path, size, index=font_index)
-        glyph_bitmap_dict = _make_glyph_bitmap_dict(face, codepoints)
+        glyph_bitmap_dict = _make_glyph_bitmap_dict(
+            face, codepoints, size=size, padding=padding
+        )
         for codepoint, glyph_bitmap in glyph_bitmap_dict.items():
             glyph_bitmaps = glyph_bitmaps_dict.get(codepoint)
             if glyph_bitmaps is None:
@@ -157,91 +197,31 @@ def load_bitmaps(
     glyph_bitmaps_dict = _filter_bitmaps_dict(
         glyph_bitmaps_dict,
         sizes=[f[2] for f in fonts],
+        density_indices=density_indices,
         density_range=density_range,
         density_quantiles=density_quantiles,
     )
     return glyph_bitmaps_dict
 
 
-def _check_fonts_len(bitmaps_dict: Dict[int, List[np.ndarray]]) -> int:
-    fonts_len = None
-    for bitmaps in bitmaps_dict.values():
-        if fonts_len is None:
-            fonts_len = len(bitmaps)
-        elif fonts_len != len(bitmaps):
-            raise ValueError("the numbers of fonts don't match")
-    if fonts_len is None:
-        raise ValueError("the collection of bitmaps must not be empty")
-    return fonts_len
-
-
-def bitmaps_to_data_for_gan(
-    glyph_bitmaps_dict: Dict[int, List[np.ndarray]],
-    size: int,
-    *,
-    randomizer: Optional[random.Random] = None,
-) -> np.ndarray:
-    if _check_fonts_len(glyph_bitmaps_dict) != 1:
-        raise ValueError("you must use a single font")
-    glyph_bitmap_dict = {k: v[0] for k, v in glyph_bitmaps_dict.items()}
-    data = np.zeros((len(glyph_bitmap_dict), size, size, 1), dtype=np.uint8)
-    values = list(glyph_bitmap_dict.values())
-    if randomizer is not None:
-        randomizer.shuffle(values)
-    for char_index, glyph_bitmap in enumerate(values):
-        _copy_2d(glyph_bitmap, data[char_index, :, :, 0])
-    return data
-
-
-def load_data_for_gan(
+def load_as_images(
+    fonts: List[Tuple[str, int, int]],
     codepoints: List[int],
-    font_path: str,
-    size: int,
     *,
-    font_index=0,
+    density_indices: Optional[List[int]] = None,
     density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
     density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
-    randomizer: Optional[random.Random] = None,
-) -> np.ndarray:
+) -> List[Tuple["PIL.Image", int, int]]:
     glyph_bitmaps_dict = load_bitmaps(
         codepoints,
-        [(font_path, font_index, size)],
+        fonts,
+        padding=True,
+        density_indices=density_indices,
         density_range=density_range,
         density_quantiles=density_quantiles,
     )
-    return bitmaps_to_data_for_gan(glyph_bitmaps_dict, size, randomizer=randomizer)
-
-
-def bitmaps_to_data_for_pix2pix(
-    glyph_bitmaps_dict: Dict[int, List[np.ndarray]],
-    size: int,
-    *,
-    randomizer: Optional[random.Random] = None,
-) -> np.ndarray:
-    fonts_len = _check_fonts_len(glyph_bitmaps_dict)
-    data = np.zeros((fonts_len, len(glyph_bitmaps_dict), size, size, 1), dtype=np.uint8)
-    values = list(glyph_bitmaps_dict.values())
-    if randomizer is not None:
-        randomizer.shuffle(values)
-    for char_index, glyph_bitmaps in enumerate(values):
-        for font_index, glyph_bitmap in enumerate(glyph_bitmaps):
-            _copy_2d(glyph_bitmap, data[font_index, char_index, :, :, 0])
-    return data
-
-
-def load_data_for_pix2pix(
-    codepoints: List[int],
-    fonts: List[Tuple[str, int]],
-    size: int,
-    *,
-    density_range: Optional[Tuple[Optional[float], Optional[float]]] = None,
-    density_quantiles: Optional[Tuple[Optional[float], Optional[float]]] = None,
-    randomizer: Optional[random.Random] = None,
-) -> np.ndarray:
-    glyph_bitmaps_dict = load_bitmaps(
-        codepoints,
-        [(path, font_index, size) for (path, font_index) in fonts],
-        density_range=density_range,
-        density_quantiles=density_quantiles,
-    )
-    return bitmaps_to_data_for_pix2pix(glyph_bitmaps_dict, size, randomizer=randomizer)
+    return [
+        (PIL.Image.fromarray(glyph_bitmap), i, codepoint)
+        for codepoint, glyph_bitmaps in sorted(glyph_bitmaps_dict.items())
+        for i, glyph_bitmap in enumerate(glyph_bitmaps)
+    ]

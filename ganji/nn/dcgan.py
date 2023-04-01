@@ -1,6 +1,6 @@
 # See: https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 import os
-import random
+import re
 import sys
 from datetime import datetime
 from typing import Any, Callable, Optional
@@ -18,29 +18,46 @@ from torchvision.transforms import transforms
 
 import ganji
 import ganji.datasets
-from ganji.project.model import Config
 
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
+NOT_IDENT_CHAR_RE = re.compile("[^0-9a-zA-Z_]")
+
+
 class GanjiDataset(VisionDataset):
     def __init__(
         self,
         root: str,
-        config: Config,
-        size: Optional[int] = 28,
-        train: bool = True,
+        font_path: str,
+        size: int,
+        *,
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
-        # dummy argument
-        download: bool = False,
+        font_index: int = 0,
+        codepoints: Optional[list[int]] = None,
+        density_range: Optional[tuple[Optional[float], Optional[float]]] = None,
+        density_quantiles: Optional[tuple[Optional[float], Optional[float]]] = None,
     ) -> None:
         super().__init__(root, transform=transform, target_transform=target_transform)
-        self.config = config
-        self.train = train
-        self.file_name = "dataset.tp"
+
+        self.font_path = (
+            font_path if os.path.abspath(font_path) else os.path.join(root, font_path)
+        )
+        self.size = size
+        self.font_index = font_index
+        self.codepoints = (
+            codepoints
+            if codepoints is not None
+            else ganji.datasets.find_codepoints("kanji")
+        )
+        self.density_range = density_range
+        self.density_quantiles = density_quantiles
+
+        safe_font_name = NOT_IDENT_CHAR_RE.sub("_", os.path.basename(font_path))
+        self.file_name = f"dataset_{safe_font_name}_{font_index}_{size}.tp"
         self.file_path = os.path.join(self.root, self.file_name)
 
         if self._check_legacy_exist():
@@ -56,39 +73,23 @@ class GanjiDataset(VisionDataset):
         return torch.load(self.file_path)
 
     def _load_data(self):
-        config = self.config
-        codepoints = ganji.datasets.find_codepoints(config.codepoint_set)
-        font_index = 0 if config.font_index is None else config.font_index
-        density_quantiles = (config.density_quantile_min, config.density_quantile_max)
-
-        if config.dataset_random_seed is not None:
-            randomizer = random.Random(config.dataset_random_seed)
-        else:
-            randomizer = None
-
-        data = ganji.datasets.load_data_for_gan(
-            codepoints,
-            config.font,
-            config.unit,
-            font_index=font_index,
-            density_quantiles=density_quantiles,
-            randomizer=randomizer,
+        data = ganji.datasets.load_as_images(
+            [(self.font_path, self.font_index, self.size)],
+            self.codepoints,
+            density_range=self.density_range,
+            density_quantiles=self.density_quantiles,
         )
-
         os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
         torch.save(data, self.file_path)
-
         return data
 
     def __getitem__(self, index: int) -> tuple[Any, Any]:
-        img = self.data[index, :, :, 0]
-
-        img = Image.fromarray(img, mode="L")
+        (img, font, codepoint) = self.data[index]
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, 1
+        return img, font, codepoint
 
     def __len__(self) -> int:
         return len(self.data)
@@ -237,10 +238,13 @@ class DCGan:
         else:
             self.dataset = GanjiDataset(
                 "ganji/",
-                train=True,
+                font_path=self.config.font,
+                font_index=self.config.font_index,
                 size=self.image_size,
-                config=self.config,
-                download=True,
+                density_quantiles=(
+                    self.config.density_quantile_min,
+                    self.config.density_quantile_max,
+                ),
                 transform=self.transform,
             )
             self.dataloader = DataLoader(
@@ -284,7 +288,7 @@ class DCGan:
         self.config, self.state = ganji.project.load_metadata(self.directory)
         if epoch is None and self.state.epoch >= 1:
             self.load_models()
-        elif epoch >= 1:
+        elif epoch is not None and epoch >= 1:
             self.load_models(epoch)
         else:
             self.init_models()
@@ -361,7 +365,7 @@ class DCGan:
         self.state.epoch = epoch
         self.state.update_time = datetime.now().timestamp()
 
-        for i, (data, _) in enumerate(self.dataloader):
+        for i, (data, _, _) in enumerate(self.dataloader):
             self._train_with_images(num_epochs, epoch, i, data)
 
         if (epoch + 1) % 1 == 0:
@@ -448,7 +452,12 @@ class DCGan:
                 cnt += 1
 
         if generate_mode:
-            image_path = os.path.join(self.directory, "generated", f"{epoch:06d}.png")
+            if epoch is not None:
+                image_path = os.path.join(
+                    self.directory, "generated", f"{epoch:06d}.png"
+                )
+            else:
+                image_path = os.path.join(self.directory, "generated", "latest.png")
         else:
             image_path = os.path.join(self.directory, "training", f"{epoch:06d}.png")
         swp_path = image_path + ".swp"
