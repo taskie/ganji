@@ -129,14 +129,17 @@ class Generator(nn.Module):
                 nn.BatchNorm2d(ngf * 4),
                 nn.ReLU(True),
                 # state size. (ngf*4) x 4 x 4
+                nn.Dropout2d(0.2),
                 nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 2),
                 nn.ReLU(True),
                 # state size. (ngf*2) x 8 x 8
+                nn.Dropout2d(0.2),
                 nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf),
                 nn.ReLU(True),
                 # state size. (ngf) x 16 x 16
+                nn.Dropout2d(0.2),
                 nn.ConvTranspose2d(ngf, nc, 2, 2, 2, bias=False),
                 nn.Tanh()
                 # state size. (nc) x 28 x 28
@@ -177,14 +180,17 @@ class Discriminator(nn.Module):
                 nn.Conv2d(nc, ndf, 5, 2, 0, bias=False),
                 nn.LeakyReLU(0.2, inplace=True),
                 # state size. (ndf) x 12 x 12
+                nn.Dropout2d(0.2),
                 nn.Conv2d(ndf, ndf * 2, 5, 2, 0, bias=False),
                 nn.BatchNorm2d(ndf * 2),
                 nn.LeakyReLU(0.2, inplace=True),
                 # state size. (ndf*2) x 4 x 4
+                nn.Dropout2d(0.2),
                 nn.Conv2d(ndf * 2, ndf * 4, 3, 1, 0, bias=False),
                 nn.BatchNorm2d(ndf * 4),
                 nn.LeakyReLU(0.2, inplace=True),
                 # state size. (ndf*4) x 2 x 2
+                nn.Dropout2d(0.2),
                 nn.Conv2d(ndf * 4, 1, 2, 1, 0, bias=False),
                 nn.Sigmoid(),
             )
@@ -251,16 +257,16 @@ class DCGan:
                 self.dataset, batch_size=self.batch_size, shuffle=True
             )
 
-        self.netG = Generator(
-            nc=self.nc, nz=self.nz, ngf=self.ngf, original=self.original
-        ).to(self.device)
         self.netD = Discriminator(nc=self.nc, ndf=self.ndf, original=self.original).to(
             self.device
         )
+        self.netG = Generator(
+            nc=self.nc, nz=self.nz, ngf=self.ngf, original=self.original
+        ).to(self.device)
 
         if (self.device.type == "cuda") and (self.ngpu > 1):
-            self.netG = nn.DataParallel(self.netG, list(range(ngpu)))
             self.netD = nn.DataParallel(self.netD, list(range(ngpu)))
+            self.netG = nn.DataParallel(self.netG, list(range(ngpu)))
 
         self.criterion = nn.BCELoss()
 
@@ -270,11 +276,14 @@ class DCGan:
         self.fake_label = 0.0
 
         self.optimizerD = optim.Adam(
-            self.netG.parameters(), lr=self.lr, betas=(self.beta1, 0.999)
-        )
-        self.optimizerG = optim.Adam(
             self.netD.parameters(), lr=self.lr, betas=(self.beta1, 0.999)
         )
+        self.optimizerG = optim.Adam(
+            self.netG.parameters(), lr=self.lr, betas=(self.beta1, 0.999)
+        )
+
+        self._log_file = None
+        self._log_csv_file = None
 
     def weights_init(self, m):
         classname = m.__class__.__name__
@@ -286,15 +295,15 @@ class DCGan:
 
     def load_state(self, epoch=None):
         self.config, self.state = ganji.project.load_metadata(self.directory)
+        if self.compiled:
+            self.netG = torch.compile(self.netG)
+            self.netD = torch.compile(self.netD)
         if epoch is None and self.state.epoch >= 1:
             self.load_models()
         elif epoch is not None and epoch >= 1:
             self.load_models(epoch)
         else:
             self.init_models()
-        if self.compiled:
-            self.netG = torch.compile(self.netG)
-            self.netD = torch.compile(self.netD)
         print(self.netG)
         print(self.netD)
 
@@ -337,26 +346,44 @@ class DCGan:
     def log_path(self):
         return os.path.join(self.directory, "log.h5")
 
+    @property
+    def log_csv_path(self):
+        return os.path.join(self.directory, "log.csv")
+
+    @property
+    def log_file(self):
+        if self._log_file is None:
+            self._log_file = h5py.File(self.log_path, "a")
+        return self._log_file
+
+    @property
+    def log_csv_file(self):
+        if self._log_csv_file is None:
+            self._log_csv_file = open(self.log_csv_path, "a")
+        return self._log_csv_file
+
     def train(self):
         self.load_state()
         start = self.state.epoch
         num_epochs = self.config.epoch_end
 
         if not os.path.exists(self.log_path):
-            with h5py.File(self.log_path, "a") as f:
-                f.create_dataset("epoch", (1,), dtype=np.int32)
-                f.create_dataset(
-                    "loss_D", (num_epochs + 1,), maxshape=(None,), dtype=np.float32
-                )
-                f.create_dataset(
-                    "loss_G", (num_epochs + 1), maxshape=(None,), dtype=np.float32
-                )
-                f.create_dataset(
-                    "D_x", (num_epochs + 1), maxshape=(None,), dtype=np.float32
-                )
-                f.create_dataset(
-                    "D_G_z", (num_epochs + 1, 2), maxshape=(None, 2), dtype=np.float32
-                )
+            f = self.log_file
+            f.create_dataset("epoch", (1,), dtype=np.int32)
+            f.create_dataset(
+                "loss_D", (num_epochs + 1,), maxshape=(None,), dtype=np.float32
+            )
+            f.create_dataset(
+                "loss_G", (num_epochs + 1), maxshape=(None,), dtype=np.float32
+            )
+            f.create_dataset(
+                "D_x", (num_epochs + 1), maxshape=(None,), dtype=np.float32
+            )
+            f.create_dataset(
+                "D_G_z", (num_epochs + 1, 2), maxshape=(None, 2), dtype=np.float32
+            )
+        if not os.path.exists(self.log_csv_path):
+            print("epoch,loss_G,loss_D,D_x,D_G_z1,D_G_z2", file=self.log_csv_file)
 
         for epoch in range(start, num_epochs):
             self._train_one_epoch(num_epochs, epoch)
@@ -373,6 +400,9 @@ class DCGan:
             self.save_imgs(epoch + 1)
 
     def _train_with_images(self, num_epochs, epoch, i, data):
+        self.netD.train()
+        self.netG.train()
+
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         self.netD.zero_grad()
         real_cpu = data.to(self.device)
@@ -404,34 +434,47 @@ class DCGan:
         D_G_z2 = output.mean().item()
         self.optimizerG.step()
 
-        eprint(
-            "[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f"
-            % (
-                epoch,
-                num_epochs,
-                i,
-                len(self.dataloader),
-                errD.item(),
-                errG.item(),
-                D_x,
-                D_G_z1,
-                D_G_z2,
+        loss_D = errD.item()
+        loss_G = errG.item()
+
+        if epoch < 100 or i == len(self.dataloader) - 1:
+            eprint(
+                "[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f"
+                % (
+                    epoch,
+                    num_epochs,
+                    i,
+                    len(self.dataloader),
+                    loss_D,
+                    loss_G,
+                    D_x,
+                    D_G_z1,
+                    D_G_z2,
+                )
             )
-        )
 
         if i == len(self.dataloader) - 1:
-            with h5py.File(self.log_path, "a") as log_file:
-                log_file["epoch"][0] = epoch + 1
-                log_file["loss_D"][epoch] = errD.item()
-                log_file["loss_G"][epoch] = errG.item()
-                log_file["D_x"][epoch] = D_x
-                log_file["D_G_z"][epoch] = (D_G_z1, D_G_z2)
+            f = self.log_file
+            f["epoch"][0] = epoch + 1
+            f["loss_D"][epoch] = loss_D
+            f["loss_G"][epoch] = loss_G
+            f["D_x"][epoch] = D_x
+            f["D_G_z"][epoch] = (D_G_z1, D_G_z2)
+            f.flush()
+            print(
+                f"{epoch + 1},{loss_G},{loss_D},{D_x},{D_G_z1},{D_G_z2}",
+                file=self.log_csv_file,
+            )
+            self.log_csv_file.flush()
 
     def save_imgs(
         self, epoch, *, rows=None, columns=None, generate_mode=False, seed=None
     ):
         r = 8 if rows is None else rows
         c = 8 if columns is None else columns
+
+        self.netD.eval()
+        self.netG.eval()
 
         with torch.no_grad():
             fake = self.netG(self.fixed_noise).detach().cpu()
@@ -475,14 +518,14 @@ class DCGan:
 def train(dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ngpu = 1 if device == "cuda" else 0
-    dc_gan = DCGan(device, dir=dir, ngpu=ngpu)
+    dc_gan = DCGan(device, dir=dir, ngpu=ngpu, compiled=False)
     dc_gan.train()
 
 
 def generate(dir, epoch=None, *, rows=None, columns=None, seed=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ngpu = 1 if device == "cuda" else 0
-    dc_gan = DCGan(device, dir=dir, ngpu=ngpu)
+    dc_gan = DCGan(device, dir=dir, ngpu=ngpu, compiled=False)
     dc_gan.generate(epoch)
 
 
